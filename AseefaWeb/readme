@@ -1,0 +1,107 @@
+//-----/Backend/config/mssql.js
+
+const AppDatabase = 'SuitApps_TopsFood_App';  // Change Mobile App Database
+
+const dbConfig = {
+    user: 'sa',
+    password: 'micro@admin123',
+    port: 1433,
+    server: '103.86.177.136',
+    database: 'SuitApps_TopsFood_Soft',      // Change Software Database
+
+    options: { 
+        encrypt: true,
+        enableArithAbort: true,
+        trustServerCertificate: true
+    },
+    pool: {
+        max: 10,
+        min: 0,
+        idleTimeoutMillis: 100000,
+    },
+    requestTimeout: 100000,
+    connectionTimeout: 15000,
+};
+
+
+module.exports = Object.assign({}, dbConfig, { AppDatabase });
+
+
+///-------------------------------------------------------------------------
+
+//---Frontend/pages/apiService.js
+
+
+
+
+import axios from 'axios';
+
+
+export const getVersion = () => {
+  return "v5.9.9";
+};
+
+const api = axios.create({
+
+   baseURL: 'http://localhost:1201',
+
+  //baseURL: 'https://api.almastraders.suitapps.in',
+
+  // baseURL: 'https://api.arvassociates.suitapps.in',
+
+  //baseURL: 'https://api.chattayil.suitapps.in',
+
+  // baseURL: 'https://api.drfood.suitapps.in',
+
+  // baseURL: 'https://api.indiantaste.suitapps.in',
+
+  //baseURL: 'https://api.kairalifoods.suitapps.in',
+
+  //baseURL: 'https://api.leoenterprises.suitapps.in',
+
+  // baseURL: 'https://api.mornchef.suitapps.in', 
+
+  // baseURL: 'https://api.oiltech.suitapps.in',
+
+  // baseURL: 'https://api.purelifefood.suitapps.in',
+
+  // baseURL: 'https://api.westernspices.suitapps.in',
+
+  // baseURL: 'https://api.topsfood.suitapps.in',
+ 
+  // baseURL: 'https://api.manavasi.suitapps.in',
+
+  // baseURL: 'https://api.almak.suitapps.in',
+
+
+
+
+  //-----------------------------------------------------------------------------
+
+  //baseURL: 'https://api.microtech.suitapps.in',
+
+  //baseURL:'https://testapi.suitapps.in',
+
+  //baseURL: 'https://api.testsuitapps.suitapps.in',
+
+
+  //------------------------------------------------------------------------------
+
+  //baseURL: 'https://api.advancemed.suitapps.in',
+
+  // baseURL:'https://api.kottoor.suitapps.in',
+
+  //baseURL: 'https://api.pothomas.sons.suitapps.in',
+
+  //baseURL: 'https://api.database.suitapps.in',
+
+  //baseURL: 'https://api.fzone.suitapps.in',
+
+  //baseURL: 'https://api.oodokairali.suitapps.in',
+
+  //baseURL: 'https://api.propsandscaff.suitapps.in',
+
+
+});
+
+export default api;

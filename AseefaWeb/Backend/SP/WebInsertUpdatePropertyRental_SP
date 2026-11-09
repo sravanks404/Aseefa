@@ -1,0 +1,352 @@
+ALTER PROCEDURE [dbo].[WebInsertUpdatePropertyRental]
+(
+    @RentalID INT = 0,
+
+    @CompanyID INT,
+    @PropertyID INT,
+
+    -- Existing PropertyMaster link
+    @RecordID INT,
+
+    @TenantName NVARCHAR(200) = NULL,
+
+    @RentalStatus NVARCHAR(50),
+
+    @MonthlyRent DECIMAL(18,2) = NULL,
+    @AnnualRent DECIMAL(18,2) = NULL,
+    @SecurityDeposit DECIMAL(18,2) = NULL,
+
+    @NumberOfCheques INT = NULL,
+
+    @PaymentFrequency NVARCHAR(50) = NULL,
+
+    @RentIncreasePercentage DECIMAL(5,2) = NULL,
+
+    @LeaseStartDate DATE = NULL,
+    @LeaseEndDate DATE = NULL,
+
+    @RenewalOption NVARCHAR(100) = NULL,
+
+    @GracePeriod INT = NULL,
+
+    @LateFeeRules NVARCHAR(MAX) = NULL,
+
+    @TenantUserID INT = NULL,
+
+    @UserID INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+
+        -- ==========================================
+        -- VALIDATION
+        -- ==========================================
+
+        IF @CompanyID IS NULL OR @CompanyID <= 0
+        BEGIN
+            SELECT
+                0 AS Success,
+                'CompanyID is required' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @PropertyID IS NULL OR @PropertyID <= 0
+        BEGIN
+            SELECT
+                0 AS Success,
+                'PropertyID is required' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @RecordID IS NULL OR @RecordID <= 0
+        BEGIN
+            SELECT
+                0 AS Success,
+                'Property Master RecordID is required' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @UserID IS NULL OR @UserID <= 0
+        BEGIN
+            SELECT
+                0 AS Success,
+                'UserID is required' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @RentalStatus = N'Occupied' AND ISNULL(@TenantUserID, 0) <= 0 AND ISNULL(RTRIM(LTRIM(@TenantName)), '') = ''
+        BEGIN
+            SELECT
+                0 AS Success,
+                'Select a tenant before saving an occupied rental' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @RentalStatus = N'Vacant'
+        BEGIN
+            SET @TenantUserID = NULL;
+            SET @TenantName = NULL;
+        END;
+
+        -- ==========================================
+        -- CHECK PROPERTY MASTER
+        -- ==========================================
+
+        IF NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.PropertyMaster
+            WHERE RecordID = @RecordID
+              AND CompanyID = @CompanyID
+              AND PropertyID = @PropertyID
+              AND IsActive = 1
+        )
+        BEGIN
+            SELECT
+                0 AS Success,
+                'Selected property master record was not found for this property'
+                    AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @RentalID > 0 AND NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.PropertyRental
+            WHERE RentalID = @RentalID
+              AND CompanyID = @CompanyID
+              AND PropertyID = @PropertyID
+              AND IsDeleted = 0
+        )
+        BEGIN
+            SELECT
+                0 AS Success,
+                'Rental record not found' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        BEGIN TRANSACTION;
+
+        -- ==========================================
+        -- CHECK OVERLAPPING OCCUPANCY
+        -- ==========================================
+        IF LOWER(RTRIM(LTRIM(@RentalStatus))) = 'occupied' AND EXISTS
+        (
+            SELECT 1
+            FROM dbo.PropertyRental WITH (UPDLOCK, HOLDLOCK)
+            WHERE CompanyID = @CompanyID
+              AND PropertyID = @PropertyID
+              AND RecordID = @RecordID
+              AND IsDeleted = 0
+              AND RentalID <> @RentalID
+              AND LOWER(RTRIM(LTRIM(RentalStatus))) = 'occupied'
+              AND (
+                  -- 1) Ongoing lease with no end date
+                  LeaseEndDate IS NULL
+                  OR
+                  -- 2) Existing lease end date is still in the future or active today, when no new start date is given
+                  (@LeaseStartDate IS NULL AND LeaseEndDate >= CAST(GETDATE() AS DATE))
+                  OR
+                  -- 3) Overlapping lease dates when new dates are given
+                  (
+                      @LeaseStartDate IS NOT NULL
+                      AND (LeaseEndDate IS NULL OR @LeaseStartDate <= LeaseEndDate)
+                      AND (@LeaseEndDate IS NULL OR LeaseStartDate IS NULL OR @LeaseEndDate >= LeaseStartDate)
+                  )
+              )
+        )
+        BEGIN
+            ROLLBACK TRANSACTION;
+            SELECT
+                0 AS Success,
+                ' This flat is currently occupied. Please select another available flat or complete the previous rental first.' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        IF @TenantUserID IS NOT NULL AND NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.UserTable WITH (UPDLOCK, HOLDLOCK)
+            WHERE UserId = @TenantUserID
+              AND CompanyID = @CompanyID
+              AND PropertyID = @PropertyID
+              AND RecordID = @RecordID
+              AND IsDeleted = 0
+              AND (RentalID IS NULL OR RentalID = @RentalID)
+        )
+        BEGIN
+            ROLLBACK TRANSACTION;
+            SELECT
+                0 AS Success,
+                'Selected tenant is not registered for this flat or is linked to another rental' AS Message,
+                0 AS RentalID;
+            RETURN;
+        END;
+
+        -- ==========================================
+        -- UPDATE
+        -- ==========================================
+
+        IF @RentalID > 0
+        BEGIN
+            UPDATE dbo.PropertyRental
+            SET
+                RecordID = @RecordID,
+                TenantName = ISNULL(@TenantName, TenantName),
+                RentalStatus = @RentalStatus,
+                MonthlyRent = @MonthlyRent,
+                AnnualRent = @AnnualRent,
+                SecurityDeposit = @SecurityDeposit,
+                NumberOfCheques = @NumberOfCheques,
+                PaymentFrequency = @PaymentFrequency,
+                RentIncreasePercentage = @RentIncreasePercentage,
+                LeaseStartDate = @LeaseStartDate,
+                LeaseEndDate = @LeaseEndDate,
+                RenewalOption = @RenewalOption,
+                GracePeriod = @GracePeriod,
+                LateFeeRules = @LateFeeRules,
+                ModifiedBy = @UserID,
+                ModifiedDate = GETDATE()
+            WHERE RentalID = @RentalID
+              AND CompanyID = @CompanyID
+              AND PropertyID = @PropertyID
+              AND IsDeleted = 0;
+
+            IF @@ROWCOUNT = 0
+            BEGIN
+                ;THROW 51000, 'Rental record could not be updated', 1;
+            END
+
+            UPDATE dbo.UserTable
+            SET RentalID = NULL
+            WHERE RentalID = @RentalID
+              AND (@TenantUserID IS NULL OR UserId <> @TenantUserID);
+
+            IF @TenantUserID IS NOT NULL
+            BEGIN
+                UPDATE dbo.UserTable
+                SET RentalID = @RentalID
+                WHERE UserId = @TenantUserID
+                  AND CompanyID = @CompanyID
+                  AND PropertyID = @PropertyID
+                  AND RecordID = @RecordID
+                  AND IsDeleted = 0
+                  AND (RentalID IS NULL OR RentalID = @RentalID);
+
+                IF @@ROWCOUNT = 0
+                BEGIN
+                    ;THROW 51000, 'Selected tenant could not be linked to this rental', 1;
+                END
+            END
+
+            COMMIT TRANSACTION;
+
+            SELECT
+                1 AS Success,
+                'Rental updated successfully' AS Message,
+                @RentalID AS RentalID;
+
+            RETURN;
+        END;
+
+        -- ==========================================
+        -- INSERT
+        -- ==========================================
+
+        INSERT INTO dbo.PropertyRental
+        (
+            CompanyID,
+            PropertyID,
+            RecordID,
+            TenantName,
+            RentalStatus,
+            MonthlyRent,
+            AnnualRent,
+            SecurityDeposit,
+            NumberOfCheques,
+            PaymentFrequency,
+            RentIncreasePercentage,
+            LeaseStartDate,
+            LeaseEndDate,
+            RenewalOption,
+            GracePeriod,
+            LateFeeRules,
+            CreatedBy,
+            CreatedDate,
+            IsDeleted
+        )
+        VALUES
+        (
+            @CompanyID,
+            @PropertyID,
+            @RecordID,
+            @TenantName,
+            @RentalStatus,
+            @MonthlyRent,
+            @AnnualRent,
+            @SecurityDeposit,
+            @NumberOfCheques,
+            @PaymentFrequency,
+            @RentIncreasePercentage,
+            @LeaseStartDate,
+            @LeaseEndDate,
+            @RenewalOption,
+            @GracePeriod,
+            @LateFeeRules,
+            @UserID,
+            GETDATE(),
+            0
+        );
+
+        DECLARE @NewRentalID INT = SCOPE_IDENTITY();
+
+        IF @TenantUserID IS NOT NULL
+        BEGIN
+            UPDATE dbo.UserTable
+            SET RentalID = @NewRentalID
+            WHERE UserId = @TenantUserID
+              AND CompanyID = @CompanyID
+              AND PropertyID = @PropertyID
+              AND RecordID = @RecordID
+              AND IsDeleted = 0
+              AND RentalID IS NULL;
+
+            IF @@ROWCOUNT = 0
+            BEGIN
+                ;THROW 51000, 'Selected tenant could not be linked to this rental', 1;
+            END
+        END
+
+        COMMIT TRANSACTION;
+
+        SELECT
+            1 AS Success,
+            'Rental saved successfully' AS Message,
+            @NewRentalID AS RentalID;
+
+    END TRY
+
+    BEGIN CATCH
+
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
+
+        SELECT
+            0 AS Success,
+            ERROR_MESSAGE() AS Message,
+            0 AS RentalID;
+
+    END CATCH
+END;

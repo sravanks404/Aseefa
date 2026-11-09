@@ -1,0 +1,116 @@
+/* Navbar.css */
+
+/* mobile sticky header with left-aligned hamburger */
+@media (max-width: 991.98px) {
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    padding: 6px 12px;
+    background-color: #2d4ba9;
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    overflow: visible; /* allow dropdown to overflow */
+  }
+
+  .navbar-collapse {
+    justify-content: flex-start !important;
+    width: 100%;
+  }
+
+  .navbar-nav {
+    width: 100%;
+    flex-direction: column;
+    padding-left: 0;
+    margin-bottom: 0;
+  }
+
+  .nav-item {
+    width: 100%;
+    text-align: left;
+  }
+
+  .navbar-nav .nav-link,
+  .accordion-toggle {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .submenu {
+    padding-left: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .submenu .nav-link {
+    text-transform: none;
+    font-weight: 500;
+  }
+
+  .divider-vertical {
+    display: none;
+  }
+
+  /* restore dropdown to escape and appear over everything */
+  .dropdown {
+    position: relative; /* anchor for absolute menu */
+  }
+
+  .dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 6px); /* small gap */
+    right: 0;
+    background: white;
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    padding: 0.25rem 0;
+    min-width: 160px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+  }
+
+  .dropdown-toggle::after {
+    display: none;
+  }
+
+  .dropdown-menu .dropdown-item {
+    color: #333;
+    padding: 8px 16px;
+    display: block;
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* ✅ Brand-aligned hover */
+  .dropdown-menu .dropdown-item:hover {
+    background-color: #2d4ba9;
+    color: white;
+  }
+}
+
+/* ✅ Desktop dropdown hover (outside mobile media query) */
+.dropdown-menu .dropdown-item {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-menu .dropdown-item:hover {
+  background-color: #2d4ba9;
+  color: white;
+}
+
+

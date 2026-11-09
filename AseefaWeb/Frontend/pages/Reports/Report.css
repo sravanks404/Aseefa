@@ -1,0 +1,26 @@
+.datatable-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .table-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .scrollable-table {
+      max-height: 400px; /* Adjust height as needed */
+      overflow-y: auto;
+    }
+    
+    .total-row {
+      background: #f8f9fa;
+      font-weight: bold;
+    }
+    
+    .pagination-container {
+      margin-top: 10px;
+    }
+    
