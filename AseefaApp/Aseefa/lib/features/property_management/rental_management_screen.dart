@@ -48,6 +48,9 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
   String? _selectedPropertyId;
   String? _selectedRecordId;
   String? _sex;
+  String _rentalStatus = 'Occupied';
+  DateTime? _leaseStartDate;
+  DateTime? _leaseEndDate;
   String _search = '';
   String _transactionType = 'Cheque';
   String? _photoBase64;
@@ -56,6 +59,7 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
   String? _transactionPath;
   int? _transactionId;
   int? _editingUserId;
+  int _rentalId = 0;
   int _companyId = 0;
   int _userId = 0;
   int _renterRoleId = 0;
@@ -276,6 +280,8 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
                       '',
                   'LeaseEndDate':
                       contract['LeaseEndDate'] ?? user['LeaseEndDate'] ?? '',
+                  'RentalID':
+                      contract['RentalID'] ?? user['RentalID'] ?? 0,
                 };
               })
               .toList()
@@ -373,9 +379,13 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
     _selectedPropertyId = null;
     _selectedRecordId = null;
     _sex = null;
+    _rentalStatus = 'Occupied';
+    _leaseStartDate = null;
+    _leaseEndDate = null;
     _photoBase64 = null;
     _photoMimeType = null;
     _editingUserId = null;
+    _rentalId = 0;
     _units = [];
     _transactions = [];
     _transactionId = null;
@@ -394,10 +404,17 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
   Future<void> _openEdit(Map<String, dynamic> renter) async {
     _clearFields();
     _editingUserId = _int(renter['UserId']);
+    _rentalId = _int(renter['RentalID']);
     _selectedPropertyId = _int(renter['PropertyID']).toString();
     final recordId = _int(renter['RecordID']);
     _selectedRecordId = null;
     _sex = renter['Sex']?.toString();
+    _rentalStatus =
+        (renter['RentalStatus'] ?? 'Occupied').toString().trim().isEmpty
+            ? 'Occupied'
+            : (renter['RentalStatus'] ?? 'Occupied').toString();
+    _leaseStartDate = DateTime.tryParse(_dateOnly(renter['LeaseStartDate']));
+    _leaseEndDate = DateTime.tryParse(_dateOnly(renter['LeaseEndDate']));
     _selectedPaymentModes = _parsePaymentModes(
       renter['PaymentMode'] ?? renter['paymentMode'],
     );
@@ -450,6 +467,31 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
     return text.length >= 10 ? text.substring(0, 10) : text;
   }
 
+  String _dateForApi(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickLeaseDate({required bool startDate}) async {
+    final current = startDate ? _leaseStartDate : _leaseEndDate;
+    final initial = current ??
+        (startDate ? DateTime.now() : _leaseStartDate ?? DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2200),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (startDate) {
+        _leaseStartDate = picked;
+      } else {
+        _leaseEndDate = picked;
+      }
+    });
+  }
+
   String _renterName(Map<String, dynamic> renter) =>
       [renter['Name'], renter['MName'], renter['LName']]
           .where((part) => part != null && part.toString().trim().isNotEmpty)
@@ -462,7 +504,11 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
         'CompanyID': '$_companyId',
         'PropertyID': _selectedPropertyId!,
         'RecordID': _selectedRecordId!,
+        'RentalID': '$_rentalId',
         'UserId': '${_editingUserId ?? 0}',
+        if (_leaseStartDate != null)
+          'LeaseStartDate': _dateForApi(_leaseStartDate!),
+        if (_leaseEndDate != null) 'LeaseEndDate': _dateForApi(_leaseEndDate!),
       },
     );
     if (response is! Map || !_success(response['success'])) {
@@ -500,13 +546,39 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
       );
       return;
     }
+    if (_rentalStatus.toLowerCase() == 'occupied' &&
+        _leaseStartDate == null) {
+      _notify(
+        'Lease start date is required for an occupied rental.',
+        error: true,
+      );
+      return;
+    }
+    if (_leaseStartDate != null &&
+        _leaseEndDate != null &&
+        _leaseEndDate!.isBefore(_leaseStartDate!)) {
+      _notify(
+        'Lease end date cannot be before lease start date.',
+        error: true,
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       await _checkAvailability();
       final payload = <String, dynamic>{
         'UserId': _editingUserId ?? 0,
+        'RentalID': _rentalId,
         'PropertyID': int.parse(_selectedPropertyId!),
         'RecordID': int.parse(_selectedRecordId!),
+        'FlatNo': _fields['FlatNo']!.text.trim(),
+        'FlatType': _fields['FlatType']!.text.trim(),
+        'RentalStatus': _rentalStatus,
+        'LeaseStartDate': _leaseStartDate == null
+            ? null
+            : _dateForApi(_leaseStartDate!),
+        'LeaseEndDate':
+            _leaseEndDate == null ? null : _dateForApi(_leaseEndDate!),
         'Name': _fields['Name']!.text.trim(),
         'MName': _fields['MName']!.text.trim().isEmpty
             ? null
@@ -529,6 +601,10 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
             ? null
             : _fields['BadgeNo']!.text.trim(),
         'WorkerRate': double.tryParse(_fields['RentalAmount']!.text.trim()),
+        'RentalAmount':
+            double.tryParse(_fields['RentalAmount']!.text.trim()),
+        'MonthlyRent':
+            double.tryParse(_fields['RentalAmount']!.text.trim()),
         'PaymentMode': _selectedPaymentModes.isEmpty
             ? null
             : _selectedPaymentModes.join(','),
@@ -1057,6 +1133,76 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
               'RentalAmount',
               keyboard: TextInputType.number,
             ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              key: ValueKey('rental-status-$_rentalStatus'),
+              initialValue: _rentalStatus,
+              decoration: const InputDecoration(labelText: 'Rental status *'),
+              items: const [
+                DropdownMenuItem(value: 'Occupied', child: Text('Occupied')),
+                DropdownMenuItem(value: 'Vacant', child: Text('Vacant')),
+                DropdownMenuItem(value: 'Reserved', child: Text('Reserved')),
+                DropdownMenuItem(
+                  value: 'Under Maintenance',
+                  child: Text('Under Maintenance'),
+                ),
+                DropdownMenuItem(value: 'Blocked', child: Text('Blocked')),
+              ],
+              onChanged: _saving
+                  ? null
+                  : (value) => setState(
+                      () => _rentalStatus = value ?? 'Occupied',
+                    ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey(
+                      'lease-start-${_leaseStartDate?.toIso8601String()}',
+                    ),
+                    initialValue: _leaseStartDate == null
+                        ? ''
+                        : _dateForApi(_leaseStartDate!),
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: _rentalStatus.toLowerCase() == 'occupied'
+                          ? 'Lease start date *'
+                          : 'Lease start date',
+                      suffixIcon: const Icon(Icons.calendar_today_outlined),
+                    ),
+                    onTap: _saving
+                        ? null
+                        : () => _pickLeaseDate(startDate: true),
+                    validator: (value) =>
+                        _rentalStatus.toLowerCase() == 'occupied' &&
+                            _leaseStartDate == null
+                        ? 'Lease start date is required for an occupied rental.'
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey(
+                      'lease-end-${_leaseEndDate?.toIso8601String()}',
+                    ),
+                    initialValue: _leaseEndDate == null
+                        ? ''
+                        : _dateForApi(_leaseEndDate!),
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Lease end date',
+                      suffixIcon: Icon(Icons.calendar_today_outlined),
+                    ),
+                    onTap: _saving
+                        ? null
+                        : () => _pickLeaseDate(startDate: false),
+                  ),
+                ),
+              ],
+            ),
             if (contract != null) ...[
               const SizedBox(height: 12),
               _contractSummary(contract),
@@ -1064,7 +1210,7 @@ class _RentalManagementScreenState extends State<RentalManagementScreen> {
                 _selectedRecordId != null) ...[
               const SizedBox(height: 12),
               const Text(
-                'Renter will be linked to this property unit. Create the lease contract separately in Property Management → Rental.',
+                'Renter and lease details will be saved against this property unit.',
                 style: TextStyle(color: Colors.blueGrey, fontSize: 12),
               ),
             ],

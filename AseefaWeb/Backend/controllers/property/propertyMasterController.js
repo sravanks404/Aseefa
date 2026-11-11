@@ -203,8 +203,9 @@ const insertUpdatePropertyMasterData = async (req, res) => {
 };
 
 const deletePropertyMaster = async (req, res) => {
+  const src = { ...req.query, ...req.body };
   try {
-    const { RecordID, PropertyID, CompanyID, UserID } = req.body;
+    const { RecordID, PropertyID, CompanyID, UserID } = src;
 
     /* ============================================
            VALIDATION
@@ -247,14 +248,59 @@ const deletePropertyMaster = async (req, res) => {
 
       .input("CompanyID", sql.Int, CompanyID)
       .input("PropertyID", sql.Int, PropertyID)
-
       .input("UserID", sql.Int, UserID)
 
       .execute("DeletePropertyMaster");
 
-    return res.status(200).json(result.recordset[0]);
+    const row = result.recordset?.[0] || {};
+    const procedureSuccess = row.success ?? row.Success;
+    if (
+      procedureSuccess === false ||
+      procedureSuccess === 0 ||
+      procedureSuccess === "0" ||
+      String(procedureSuccess).toLowerCase() === "false"
+    ) {
+      return res.status(409).json({
+        ...row,
+        success: false,
+        message:
+          row.message || row.Message || "Property Master could not be deleted.",
+      });
+    }
+
+    const remainingResult = await pool
+      .request()
+      .input("CompanyID", sql.Int, CompanyID)
+      .input("PropertyID", sql.Int, PropertyID)
+      .execute("GetPropertyMaster");
+    const recordStillExists = (remainingResult.recordset || []).some(
+      (item) => Number(item.RecordID) === Number(RecordID),
+    );
+
+    if (recordStillExists) {
+      return res.status(409).json({
+        ...row,
+        success: false,
+        message:
+          "DeletePropertyMaster completed, but the flat is still present. Check the stored procedure and its deletion conditions.",
+      });
+    }
+
+    return res.status(200).json({
+      ...row,
+      success: true,
+      message: row.message || row.Message || "Property Master deleted successfully.",
+    });
   } catch (error) {
     console.error("Delete Property Master Error:", error);
+
+    if (error.number === 547) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This unit cannot be deleted while it is linked to rental, tenant, or other property records. Remove those links first.",
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -368,8 +414,9 @@ const insertUpdatePropertyMasterCheque = async (req, res) => {
 
 // ── DELETE one cheque ────────────────────────────────────────
 const deletePropertyMasterCheque = async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
-    const { ChequeID, RentID, CompanyID, UserID } = req.body;
+    const { ChequeID, RentID, CompanyID, UserID } = src;
 
     if (!ChequeID || !RentID) {
       return res.status(400).json({

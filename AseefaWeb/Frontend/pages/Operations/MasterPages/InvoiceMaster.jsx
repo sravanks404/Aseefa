@@ -242,7 +242,7 @@ function InvoiceSeriesMaster() {
 
     try {
       setLoadingDelete(true);
-      await api.delete(`/api/deleteinvoiceseries/${form.SID}`);
+      await api.post(`/api/deleteinvoiceseries/${form.SID}`, { SID: form.SID });
       toast.success("Invoice series deleted successfully!");
       fetchAll();
       handleClear();

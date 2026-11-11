@@ -1,36 +1,47 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const sql = require('mssql');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const sql = require("mssql");
 const dbConfig = require('../../../config/mssql');
-
-router.get('/gettax', async (req, res) => {
+ 
+    const src = { ...req.query, ...req.body };
   try {
-    const { CompanyId } = req.query;
 
-    if (!CompanyId) {
+    const { TaxID, DeletedBy } = src;
+
+    if (!TaxID || !DeletedBy) {
       return res.status(400).json({
         success: false,
-        message: "CompanyId is required"
+        message: "TaxID and DeletedBy are required"
       });
     }
 
     const pool = await sql.connect(dbConfig);
 
-    const result = await pool.request()
-      .input("CompanyId", sql.Int, parseInt(CompanyId))
-      .execute("WebGetTaxSettings");
+    await pool.request()
+      .input("TaxID", sql.Int, parseInt(TaxID))
+      .input("DeletedBy", sql.Int, parseInt(DeletedBy))
+      .execute("WebDeleteTaxSettings");
 
     res.status(200).json({
       success: true,
-      message: "Tax data fetched successfully",
-      data: result.recordset
+      message: "Tax deleted successfully"
     });
 
   } catch (error) {
 
-    console.error("Full error:", error);  // ← shows full error object
+    console.error("Error deleting tax:", error);
 
     res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+
+  }
+
       success: false,
       message: "Server error",
       error: error.message,
@@ -40,9 +51,47 @@ router.get('/gettax', async (req, res) => {
 });
 
 router.delete('/deletetax', async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
 
-    const { TaxID, DeletedBy } = req.body;
+    const { TaxID, DeletedBy } = src;
+
+    if (!TaxID || !DeletedBy) {
+      return res.status(400).json({
+        success: false,
+        message: "TaxID and DeletedBy are required"
+      });
+    }
+
+    const pool = await sql.connect(dbConfig);
+
+    await pool.request()
+      .input("TaxID", sql.Int, parseInt(TaxID))
+      .input("DeletedBy", sql.Int, parseInt(DeletedBy))
+      .execute("WebDeleteTaxSettings");
+
+    res.status(200).json({
+      success: true,
+      message: "Tax deleted successfully"
+    });
+
+  } catch (error) {
+
+    console.error("Error deleting tax:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+
+  }
+})
+router.post('/deletetax', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+  try {
+
+    const { TaxID, DeletedBy } = src;
 
     if (!TaxID || !DeletedBy) {
       return res.status(400).json({

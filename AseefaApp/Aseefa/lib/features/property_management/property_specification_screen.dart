@@ -8,15 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:suitapps/config/api_config.dart';
 import 'package:suitapps/core/session_store.dart';
 
-/// Base URL used for Property Specification CRUD (get / save / delete)
-/// and for the Property Master (flat) lookup that now gates it, since a
-/// specification belongs to a specific flat, not just a property.
-/// Mirrors `kAseefaWebUrl` used by the Property Master screen.
-///
-/// The property picker (getPropertyInformation) is left UNCHANGED and
-/// still goes through `ApiConfig.baseUrl`.
-const String kAseefaWebUrl = 'https://api.aseefa.suitapps.in/api';
-
 class PsColors {
   static const Color primary = Color.fromARGB(255, 35, 0, 196);
   static const Color primaryDark = Color(0xFF17008C);
@@ -140,7 +131,7 @@ enum _SpecStep { properties, flats, form }
 // ============================================================
 
 /// Lightweight property summary used for the picker list.
-/// Sourced from the same `getPropertyInformation` endpoint used
+/// Sourced from the same `getPropertyInfo` endpoint used
 /// by the Property Information screen.
 class PropertySummary {
   final int id;
@@ -542,7 +533,7 @@ class _PropertySpecificationBodyState
   }
 
   // ============================================================
-  // STEP 1: PROPERTIES  (unchanged endpoint: ApiConfig.baseUrl)
+  // STEP 1: PROPERTIES
   // ============================================================
 
   Future<void> loadProperties() async {
@@ -553,7 +544,7 @@ class _PropertySpecificationBodyState
     }
     setState(() => loading = true);
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformation')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo')
           .replace(queryParameters: {'CompanyID': '$companyID'});
       final response = await http.get(uri);
       final data = _decodeJsonBody(response.body, 'load properties');
@@ -643,7 +634,7 @@ class _PropertySpecificationBodyState
   }
 
   // ============================================================
-  // STEP 2: FLATS  (Property Master records — kAseefaWebUrl)
+  // STEP 2: FLATS (Property Master records)
   // ============================================================
 
   Future<void> loadFlats() async {
@@ -656,7 +647,7 @@ class _PropertySpecificationBodyState
     }
     setState(() => loadingFlats = true);
     try {
-      final uri = Uri.parse('$kAseefaWebUrl/getPropertyMaster')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyMaster')
           .replace(queryParameters: {
         'CompanyID': '$companyID',
         'PropertyID': '${property.id}',
@@ -728,7 +719,7 @@ class _PropertySpecificationBodyState
   }
 
   // ============================================================
-  // STEP 3: SPECIFICATION  (kAseefaWebUrl)
+  // STEP 3: SPECIFICATION
   // ============================================================
 
   Future<void> loadSpecification() async {
@@ -744,7 +735,7 @@ class _PropertySpecificationBodyState
 
     setState(() => loadingSpec = true);
     try {
-      final uri = Uri.parse('$kAseefaWebUrl/getPropertySpecificationByID')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertySpecificationByID')
           .replace(queryParameters: {
         'PropertyID': '${property.id}',
         'RecordID': '${flat.recordId}',
@@ -820,7 +811,7 @@ class _PropertySpecificationBodyState
       final payload = form.toPayload(companyId: companyID, userId: userID);
       debugPrint('Saving Specification: $payload');
       final response = await http.post(
-        Uri.parse('$kAseefaWebUrl/insertUpdatePropertySpecification'),
+        Uri.parse('${ApiConfig.webUrl}/insertUpdatePropertySpecification'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -912,7 +903,7 @@ class _PropertySpecificationBodyState
     try {
       final request = http.Request(
         'POST',
-        Uri.parse('$kAseefaWebUrl/deletePropertySpecification'),
+        Uri.parse('${ApiConfig.webUrl}/deletePropertySpecification'),
       );
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode({

@@ -1,22 +1,35 @@
-const express = require('express');
-const sql     = require('mssql');
-const router  = express.Router();
+const express = require("express");
+const router = express.Router();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const sql = require("mssql");
 const dbConfig = require('../../../config/mssql');
-
-
-
-router.post('/insertupdateinvoiceseries', async (req, res) => {
+ 
+    const src = { ...req.query, ...req.body };
+    src.SID ??= src.SID;
     try {
-        const { SID, Series, FYearID, CompanyID, InvType, CBY,Branchid } = req.body;
+        const SID = parseInt(src.SID);
 
         const pool = await sql.connect(dbConfig);
 
         const result = await pool.request()
-            .input('SID', sql.Int, SID || 0)
-            .input('Series', sql.VarChar(100), Series)
-            .input('FYearID', sql.Int, FYearID)
-            .input('CompanyID', sql.Int, CompanyID)
-            .input('InvType', sql.VarChar(50), InvType)
+            .input('SID', sql.Int, SID)
+            .execute('WebDeleteInvoiceSeries');
+
+        res.json({
+            success: true,
+            SID: result.recordset[0].SID
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: err.message
+        });
+    }
+
             .input('CBY', sql.Int, CBY)
             .input('Branchid',sql.Int,Branchid)
             .execute('WebInsertUpdateInvoiceSeries');
@@ -58,6 +71,33 @@ router.get('/webgetinvoiceseries', async (req, res) => {
 });
 
 router.delete('/deleteinvoiceseries/:SID', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+    src.SID ??= req.params.SID;
+    try {
+        const SID = parseInt(req.params.SID);
+
+        const pool = await sql.connect(dbConfig);
+
+        const result = await pool.request()
+            .input('SID', sql.Int, SID)
+            .execute('WebDeleteInvoiceSeries');
+
+        res.json({
+            success: true,
+            SID: result.recordset[0].SID
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: err.message
+        });
+    }
+})
+router.post('/deleteinvoiceseries/:SID', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+    src.SID ??= req.params.SID;
     try {
         const SID = parseInt(req.params.SID);
 

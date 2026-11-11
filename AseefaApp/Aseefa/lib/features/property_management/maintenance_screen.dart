@@ -218,7 +218,7 @@ class _MaintenanceBodyState extends State<MaintenanceBody> {
     setState(() => loadingProperties = true);
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformation')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo')
           .replace(queryParameters: {'CompanyID': '$companyID'});
 
       final response = await http.get(uri);
@@ -277,7 +277,7 @@ class _MaintenanceBodyState extends State<MaintenanceBody> {
     setState(() => loadingMaintenance = true);
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyMaintenance').replace(
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyMaintenance').replace(
         queryParameters: {
           'PropertyID': '$propertyId',
           'CompanyID': '$companyID',
@@ -493,7 +493,7 @@ class _MaintenanceBodyState extends State<MaintenanceBody> {
       };
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/insertUpdatePropertyMaintenance'),
+        Uri.parse('${ApiConfig.webUrl}/insertUpdatePropertyMaintenance'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -571,7 +571,7 @@ class _MaintenanceBodyState extends State<MaintenanceBody> {
     try {
       final request = http.Request(
         'POST',
-        Uri.parse('${ApiConfig.baseUrl}/deletePropertyMaintenance'),
+        Uri.parse('${ApiConfig.webUrl}/deletePropertyMaintenance'),
       );
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode({

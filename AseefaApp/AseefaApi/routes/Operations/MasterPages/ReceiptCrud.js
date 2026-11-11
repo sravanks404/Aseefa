@@ -1,36 +1,35 @@
 const express = require('express');
-const sql = require('mssql');
-const router = express.Router();
-const dbConfig = require('../../../config/mssql');
+const sql = re
+ 
+    const src = { ...req.query, ...req.body };
+    const { ReNo, DeletedBy } = src;
 
-router.get('/GetReceiptNo', async (req, res) => {
-    const { CompanyID, FYearID } = req.query;
-    if (!CompanyID) {
-        return res.status(400).send('CompanyID is required');
+    // Validate the input data
+    if (ReNo === undefined || DeletedBy === undefined) {
+        return res.status(400).send('ReNo and DeletedBy are required');
     }
+
     try {
-        await sql.connect(dbConfig);
-        const request = new sql.Request();
-        request.input('CompanyID', sql.Int, CompanyID);
-        request.input('FYearID', sql.Int, FYearID);
+        const pool = await sql.connect(dbConfig);
 
+        const result = await pool.request()
+            .input('ReNo', sql.Int, ReNo)
+            .input('DeletedBy', sql.Int, DeletedBy)
+            .input('DeletedDate', sql.DateTime, new Date())
+            .execute('DeleteReciept');
 
-        const result = await request.execute('webGetReceiptNo');
-        res.json(result.recordset);
+        // console.log('Rows affected:', result.rowsAffected[0]); // Log rows affected
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(200).send('No matching receipt found to delete');
+        } else {
+            res.status(404).send('Receipt deleted successfully');
+        }
     } catch (err) {
-        console.error('SQL error:', err);
+        console.error('SQL error', err);
         res.status(500).send('Server error');
     }
-});
-
-router.get('/GetReceiptLedger', async (req, res) => {
-    try {
-        await sql.connect(dbConfig);
-        const request = new sql.Request();
-
-        const result = await request.execute('webGetReceiptLedger');
-        res.json(result.recordset);
-    } catch (err) {
+ } catch (err) {
         console.error('SQL error:', err);
         res.status(500).send('Server error');
     }
@@ -391,7 +390,38 @@ router.put('/updateReceipt', async (req, res) => {
 });
 
 router.delete('/deleteReciept', async (req, res) => {
-    const { ReNo, DeletedBy } = req.body;
+    const src = { ...req.query, ...req.body };
+    const { ReNo, DeletedBy } = src;
+
+    // Validate the input data
+    if (ReNo === undefined || DeletedBy === undefined) {
+        return res.status(400).send('ReNo and DeletedBy are required');
+    }
+
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        const result = await pool.request()
+            .input('ReNo', sql.Int, ReNo)
+            .input('DeletedBy', sql.Int, DeletedBy)
+            .input('DeletedDate', sql.DateTime, new Date())
+            .execute('DeleteReciept');
+
+        // console.log('Rows affected:', result.rowsAffected[0]); // Log rows affected
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(200).send('No matching receipt found to delete');
+        } else {
+            res.status(404).send('Receipt deleted successfully');
+        }
+    } catch (err) {
+        console.error('SQL error', err);
+        res.status(500).send('Server error');
+    }
+})
+router.post('/deleteReciept', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+    const { ReNo, DeletedBy } = src;
 
     // Validate the input data
     if (ReNo === undefined || DeletedBy === undefined) {

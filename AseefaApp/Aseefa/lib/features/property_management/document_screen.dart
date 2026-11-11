@@ -374,7 +374,7 @@ class _DocumentBodyState extends State<DocumentBody> {
     }
     setState(() => loadingProperties = true);
     try {
-      final uri = Uri.parse('$kAseefaWebUrl/getPropertyInfo')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo')
           .replace(queryParameters: {'CompanyID': '$companyID'});
       final response = await http.get(uri);
       final data = _decodeJsonBody(response.body, 'load properties');
@@ -407,7 +407,7 @@ class _DocumentBodyState extends State<DocumentBody> {
     }
     setState(() => loadingDocuments = true);
     try {
-      final uri = Uri.parse('$kAseefaWebUrl/getPropertyDocs').replace(queryParameters: {
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyDocs').replace(queryParameters: {
         'CompanyID': '$companyID',
         'PropertyID': '${selectedProperty!.id}',
       });
@@ -612,7 +612,7 @@ class _DocumentBodyState extends State<DocumentBody> {
     setState(() => saving = true);
 
     try {
-      final url = Uri.parse('$kAseefaWebUrl/uploadPropertyDoc');
+      final url = Uri.parse('${ApiConfig.webUrl}/uploadPropertyDoc');
       final request = http.MultipartRequest('POST', url);
 
       request.fields['CompanyID'] = '$companyID';
@@ -693,7 +693,7 @@ class _DocumentBodyState extends State<DocumentBody> {
 
     try {
       final response = await http.post(
-        Uri.parse('$kAseefaWebUrl/deletePropertyDoc'),
+        Uri.parse('${ApiConfig.webUrl}/deletePropertyDoc'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'CompanyID': companyID,

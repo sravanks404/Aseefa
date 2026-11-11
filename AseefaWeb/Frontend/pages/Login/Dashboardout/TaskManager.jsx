@@ -343,13 +343,11 @@ function TaskM() {
         try {
             setLoadingDelete(true); // Set loading state before making the request
 
-            const response = await api.delete("/api/webDeleteTask", {
-                data: {
+            const response = await api.post("/api/webDeleteTask", {
                     TID: parseInt(Taskmaster.TID),
                     CompanyID: parseInt(CompanyID), // Ensure CompanyID is a number
                     DeletedBy: parseInt(Empid), // Ensure Empid is a number
-                },
-            });
+                },);
 
             // setMessage(response.data.message);
             // alert("location deleted successfully!");

@@ -289,13 +289,11 @@ function WebMaster() {
                   try {
                         setLoadingDelete(true); // Set loading state before making the request
 
-                        const response = await api.delete('/api/DeleteWebEmpMessage', {
-                              data: {
+                        const response = await api.post('/api/DeleteWebEmpMessage', {
                                     MID: parseInt(route.MID),
                                     CompanyID: parseInt(CompanyID), // Ensure CompanyID is a number
                                     DeletedBy: parseInt(Empid) // Ensure Empid is a number
-                              }
-                        });
+                              });
 
                         setMessage(response.data.message);
                         alert('Employee Message deleted successfully!');

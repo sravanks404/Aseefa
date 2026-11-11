@@ -260,7 +260,7 @@ class _AmenitiesBodyState extends State<AmenitiesBody> {
     });
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformation')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo')
           .replace(queryParameters: {'CompanyID': '$companyId'});
 
       final response = await http.get(uri);
@@ -337,7 +337,7 @@ class _AmenitiesBodyState extends State<AmenitiesBody> {
     });
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyAmenities').replace(
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyAmenities').replace(
         queryParameters: {'PropertyID': '$propertyId', 'CompanyID': '$companyId'},
       );
 
@@ -449,7 +449,7 @@ class _AmenitiesBodyState extends State<AmenitiesBody> {
 
       for (final key in keysToDelete) {
         final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/deletePropertyAmenities'),
+          Uri.parse('${ApiConfig.webUrl}/deletePropertyAmenities'),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({
             "AmenityID": amenityIds[key],
@@ -500,7 +500,7 @@ class _AmenitiesBodyState extends State<AmenitiesBody> {
         };
 
         final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/insertUpdatePropertyAmenities'),
+          Uri.parse('${ApiConfig.webUrl}/insertUpdatePropertyAmenities'),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(payload),
         );
@@ -1618,7 +1618,7 @@ class _AmenityDetailDialogState extends State<AmenityDetailDialog> {
 
   Future<void> loadDetail() async {
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyAmenitiesByID').replace(
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyAmenitiesByID').replace(
         queryParameters: {
           'AmenityID': '${widget.amenityId}',
           'PropertyID': '${widget.propertyId}',

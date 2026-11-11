@@ -207,7 +207,7 @@ const fetchJobDetails = async (jobCardId) => {
       setDeleting(true);
       setActionError(null);
 
-      await api.delete(`/api/DeleteProduction/${jc.JobCardId}`); // 👈 adjust endpoint
+      await api.post(`/api/DeleteProduction/${jc.JobCardId}`, { JobCardId: jc.JobCardId }); // 👈 adjust endpoint
       alert("🗑️ Production deleted!");
       fetchJobDetails(jc.JobCardId);
     } catch (err) {

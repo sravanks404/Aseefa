@@ -1,84 +1,66 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const sql = require('mssql');
-const dbConfig = require('../../../config/mssql');
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
-// ── Storage config for project documents ───────────────────────────
-const projectDocStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const unitId = req.body.UnitID || "unknown";
-    const folder = path.join(__dirname, "../../../uploads/projects", String(unitId));
-    fs.mkdirSync(folder, { recursive: true });
-    cb(null, folder);
-  },
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    cb(null, `${timestamp}_${safe}`);
-  },
-});
-
-const uploadProjectDocs = multer({
-  storage: projectDocStorage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB per file
-});
+const sql = require("mssql");
+const dbConfig = require('../../../config/mssql');
+ 
+  
 
 
-router.post("/uploadProjectDocs", uploadProjectDocs.array("files"), async (req, res) => {
-  try {
-    const { UnitID } = req.body;
-    const titles = JSON.parse(req.body.titles || "[]"); // ["Site Plan","Contract",...]
+// router.post("/uploadProjectDocs", uploadProjectDocs.array("files"), async (req, res) => {
+//   try {
+//     const { UnitID } = req.body;
+//     const titles = JSON.parse(req.body.titles || "[]"); // ["Site Plan","Contract",...]
 
-    if (!UnitID) {
-      return res.status(400).json({ success: false, message: "UnitID is required" });
-    }
+//     if (!UnitID) {
+//       return res.status(400).json({ success: false, message: "UnitID is required" });
+//     }
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: "No files uploaded" });
-    }
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ success: false, message: "No files uploaded" });
+//     }
 
-    // Build document objects: { title, path, originalName, uploadedAt }
-    const newDocs = req.files.map((f, i) => ({
-      title: titles[i] || f.originalname.replace(/\.[^.]+$/, ""),
-      path: `uploads/projects/${UnitID}/${f.filename}`,
-      originalName: f.originalname,
-      uploadedAt: new Date().toISOString(),
-    }));
+//     // Build document objects: { title, path, originalName, uploadedAt }
+//     const newDocs = req.files.map((f, i) => ({
+//       title: titles[i] || f.originalname.replace(/\.[^.]+$/, ""),
+//       path: `uploads/projects/${UnitID}/${f.filename}`,
+//       originalName: f.originalname,
+//       uploadedAt: new Date().toISOString(),
+//     }));
 
-    const pool = await sql.connect(dbConfig);
+//     const pool = await sql.connect(dbConfig);
 
-    // Fetch existing documents from DB
-    const existing = await pool.request()
-      .input("UnitID", sql.Int, parseInt(UnitID))
-      .query("SELECT Documents FROM dbo.Unit WHERE UnitID = @UnitID AND IsDeleted = 0");
+//     // Fetch existing documents from DB
+//     const existing = await pool.request()
+//       .input("UnitID", sql.Int, parseInt(UnitID))
+//       .query("SELECT Documents FROM dbo.Unit WHERE UnitID = @UnitID AND IsDeleted = 0");
 
-    let allDocs = [];
-    if (existing.recordset[0]?.Documents) {
-      try { allDocs = JSON.parse(existing.recordset[0].Documents); } catch { allDocs = []; }
-    }
+//     let allDocs = [];
+//     if (existing.recordset[0]?.Documents) {
+//       try { allDocs = JSON.parse(existing.recordset[0].Documents); } catch { allDocs = []; }
+//     }
 
-    allDocs = [...allDocs, ...newDocs];
+//     allDocs = [...allDocs, ...newDocs];
 
-    // Save merged list back to Unit
-    await pool.request()
-      .input("UnitID", sql.Int, parseInt(UnitID))
-      .input("Documents", sql.NVarChar(sql.MAX), JSON.stringify(allDocs))
-      .execute("UpdateUnitDocuments");
+//     // Save merged list back to Unit
+//     await pool.request()
+//       .input("UnitID", sql.Int, parseInt(UnitID))
+//       .input("Documents", sql.NVarChar(sql.MAX), JSON.stringify(allDocs))
+//       .execute("UpdateUnitDocuments");
 
-    res.status(200).json({
-      success: true,
-      message: "Documents uploaded successfully",
-      documents: allDocs,
-    });
+//     res.status(200).json({
+//       success: true,
+//       message: "Documents uploaded successfully",
+//       documents: allDocs,
+//     });
 
-  } catch (error) {
-    console.error("Error uploading project docs:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
-  }
-});
+//   } catch (error) {
+//     console.error("Error uploading project docs:", error);
+//     res.status(500).json({ success: false, message: "Server error", error: error.message });
+//   }
+// });
 
 
 
@@ -185,9 +167,47 @@ router.get('/getunit', async (req, res) => {
 });
 
 router.delete('/deleteunit', async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
 
-    const { UnitID, DeletedBy } = req.body;
+    const { UnitID, DeletedBy } = src;
+
+    if (!UnitID || !DeletedBy) {
+      return res.status(400).json({
+        success: false,
+        message: "UnitID and DeletedBy are required"
+      });
+    }
+
+    const pool = await sql.connect(dbConfig);
+
+    await pool.request()
+      .input("UnitID", sql.Int, parseInt(UnitID))
+      .input("DeletedBy", sql.Int, parseInt(DeletedBy))
+      .execute("WebDeleteUnit");
+
+    res.status(200).json({
+      success: true,
+      message: "Unit deleted successfully"
+    });
+
+  } catch (error) {
+
+    console.error("Error deleting unit:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+
+  }
+})
+router.post('/deleteunit', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+  try {
+
+    const { UnitID, DeletedBy } = src;
 
     if (!UnitID || !DeletedBy) {
       return res.status(400).json({
@@ -461,8 +481,36 @@ router.post('/InsertUpdateCamp', async (req, res) => {
 
 // ── DELETE camp (soft delete) ──────────────────────────────────────
 router.delete('/DeleteCamp', async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
-    const { CampID, DeletedBy = 0 } = req.body;
+    const { CampID, DeletedBy = 0 } = src;
+
+    if (!CampID) {
+      return res.status(400).json({ success: false, message: "CampID is required" });
+    }
+
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request()
+      .input('CampID', sql.Int, parseInt(CampID))
+      .input('DeletedBy', sql.Int, parseInt(DeletedBy))
+      .execute('DeleteCamp');
+
+    const affected = result.recordset?.[0]?.AffectedRows;
+    if (affected === 0) {
+      return res.status(404).json({ success: false, message: "Camp not found or already deleted" });
+    }
+
+    res.json({ success: true, message: "Camp deleted" });
+
+  } catch (err) {
+    console.error('DeleteCamp error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+})
+router.post('/DeleteCamp', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+  try {
+    const { CampID, DeletedBy = 0 } = src;
 
     if (!CampID) {
       return res.status(400).json({ success: false, message: "CampID is required" });

@@ -220,12 +220,10 @@ function PlaceMaster() {
             const DeletedBy = sessionStorage.getItem("UserId");
 
             // Update this API call to match your delete endpoint
-            const response = await api.delete('/api/WebDeletePlaceMaster', {
-                params: {
+            const response = await api.post('/api/WebDeletePlaceMaster', {
                     PlID: route.PlID,
                     DeletedBy: DeletedBy
-                }
-            });
+                });
 
             if (response.data.success) {
                 toast.success('Place deleted successfully.')

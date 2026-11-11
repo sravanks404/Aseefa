@@ -442,6 +442,7 @@ const getPropertyRentalByID = async (req, res) => {
 
 
 const deletePropertyRental = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     let transaction;
     try {
 
@@ -450,7 +451,7 @@ const deletePropertyRental = async (req, res) => {
             CompanyID,
             PropertyID,
             UserID
-        } = req.body;
+        } = src;
 
       
 

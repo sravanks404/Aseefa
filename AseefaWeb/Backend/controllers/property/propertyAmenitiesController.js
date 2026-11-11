@@ -196,13 +196,14 @@ const insertUpdatePropertyAmenities = async (req, res) => {
 // DELETE PROPERTY AMENITY
 // =====================================================
 const deletePropertyAmenities = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try {
         const {
             AmenityID,
             PropertyID,
             CompanyID,
             UserID
-        } = req.body;
+        } = src;
 
         if (!AmenityID || !PropertyID || !CompanyID) {
             return res.status(400).json({

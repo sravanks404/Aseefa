@@ -301,6 +301,7 @@ const insertUpdatePropertyUtilities = async (req, res) => {
 // DELETE UTILITY
 // =====================================================
 const deletePropertyUtility = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try {
 
         const {
@@ -308,7 +309,7 @@ const deletePropertyUtility = async (req, res) => {
             PropertyID,
             CompanyID,
             ModifiedBy
-        } = req.body;
+        } = src;
 
 
         if (!UtilityID || !PropertyID || !CompanyID) {

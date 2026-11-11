@@ -196,13 +196,14 @@ const insertUpdatePropertyOwnership = async (req, res) => {
 
 
 const deletePropertyOwnership = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try {
         const {
             OwnershipID,
             CompanyID,
             PropertyID,
             UserID
-        } = req.body;
+        } = src;
 
         if (!OwnershipID || !CompanyID || !PropertyID) {
             return res.status(400).json({

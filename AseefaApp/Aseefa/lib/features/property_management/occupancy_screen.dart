@@ -290,7 +290,7 @@ class _OccupancyBodyState extends State<OccupancyBody> {
 
     try {
       final uri = Uri.parse(
-        '${ApiConfig.baseUrl}/getPropertyInformation',
+        '${ApiConfig.webUrl}/getPropertyInfo',
       ).replace(
         queryParameters: {'CompanyID': '$companyId'},
       );
@@ -374,7 +374,7 @@ class _OccupancyBodyState extends State<OccupancyBody> {
 
     try {
       final uri = Uri.parse(
-        '${ApiConfig.baseUrl}/getPropertyOccupancy',
+        '${ApiConfig.webUrl}/getPropertyOccupancy',
       ).replace(
         queryParameters: {
           'PropertyID': '$propertyId',
@@ -430,7 +430,7 @@ class _OccupancyBodyState extends State<OccupancyBody> {
 
     try {
       final uri = Uri.parse(
-        '$kAseefaWebUrl/getPropertyMaster',
+        '${ApiConfig.webUrl}/getPropertyMaster',
       ).replace(
         queryParameters: {
           'PropertyID': '$propertyId',
@@ -598,13 +598,12 @@ class _OccupancyBodyState extends State<OccupancyBody> {
       };
 
       // final response = await http.post(
-      //   Uri.parse('${ApiConfig.baseUrl}/insertUpdatePropertyOccupancy'),
       //   headers: {'Content-Type': 'application/json'},
       //   body: jsonEncode(payload),
       // );
 
       // final data = _json(response.body);
-            final url = Uri.parse('$kAseefaWebUrl/insertUpdatePropertyOccupancy');
+            final url = Uri.parse('${ApiConfig.webUrl}/insertUpdatePropertyOccupancy');
       debugPrint('Saving Occupancy → URL: $url');
       debugPrint('Saving Occupancy → Payload: $payload');
 
@@ -693,7 +692,7 @@ class _OccupancyBodyState extends State<OccupancyBody> {
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/deletePropertyOccupancy'),
+        Uri.parse('${ApiConfig.webUrl}/deletePropertyOccupancy'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'OccupancyID': record.id,

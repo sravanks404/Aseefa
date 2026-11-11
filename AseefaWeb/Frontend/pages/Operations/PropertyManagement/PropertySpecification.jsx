@@ -1059,10 +1059,7 @@ const PropertySpecification = () => {
 
         try {
 
-            const response = await api.delete(
-                "/api/deletePropertySpecification",
-                {
-                    data: {
+            const response = await api.post("/api/deletePropertySpecification", {
 
                         SpecificationID:
                             specificationId,
@@ -1075,9 +1072,7 @@ const PropertySpecification = () => {
 
                         UserID:
                             userID
-                    }
-                }
-            );
+                    });
 
 
             const data = response.data;

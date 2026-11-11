@@ -327,13 +327,14 @@ const insertUpdatePropertyOccupancy = async (req, res) => {
 };
 
 const deletePropertyOccupancy = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try {
         const {
             OccupancyID,
             PropertyID,
             CompanyID,
             ModifiedBy
-        } = req.body;
+        } = src;
 
         if (!OccupancyID || !PropertyID || !CompanyID) {
             return res.status(400).json({

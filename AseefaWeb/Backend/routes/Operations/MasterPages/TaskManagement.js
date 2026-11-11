@@ -1,24 +1,29 @@
-    const express = require('express');
-    const sql = require('mssql');
-    const router = express.Router();
-    const dbConfig = require('../../../config/mssql');
-
-    // ── GET /api/gettask?CompanyId=X ──
-    router.get('/gettask', async (req, res) => {
-        const { CompanyId } = req.query;
-        if (!CompanyId) {
-            return res.status(400).json({ success: false, message: 'CompanyId is required.' });
+   const express = require("express");
+const router = express.Router();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const sql = require("mssql");
+const dbConfig = require('../../../config/mssql');
+ 
+    const src = { ...req.query, ...req.body };
+        const { TaskID, DeletedBy } = src;
+        if (!TaskID || !DeletedBy) {
+            return res.status(400).json({ success: false, message: 'TaskID and DeletedBy are required.' });
         }
         try {
             const pool = await sql.connect(dbConfig);
-            const result = await pool.request()
-                .input('CompanyID', sql.Int, Number(CompanyId))
-                .execute('sp_GetTasks');
+            await pool.request()
+                .input('TaskID', sql.Int, Number(TaskID))
+                .input('DeletedBy', sql.Int, Number(DeletedBy))
+                .execute('sp_DeleteTask');
 
-            const [tasks, approvalRows, monitoringRows] = result.recordsets;
-
-            const approvalByTask = {};
-            approvalRows.forEach(r => {
+            res.json({ success: true });
+        } catch (err) {
+            console.error('deletetask error:', err);
+            res.status(500).json({ success: false, message: err.message || 'Delete failed.' });
+        }
+    alRows.forEach(r => {
                 (approvalByTask[r.TaskID] ||= []).push(r); // already ordered by ApprovalOrder from SP
             });
 
@@ -89,7 +94,27 @@
 
     // ── DELETE /api/deletetask  { TaskID, DeletedBy } ──
     router.delete('/deletetask', async (req, res) => {
-        const { TaskID, DeletedBy } = req.body;
+    const src = { ...req.query, ...req.body };
+        const { TaskID, DeletedBy } = src;
+        if (!TaskID || !DeletedBy) {
+            return res.status(400).json({ success: false, message: 'TaskID and DeletedBy are required.' });
+        }
+        try {
+            const pool = await sql.connect(dbConfig);
+            await pool.request()
+                .input('TaskID', sql.Int, Number(TaskID))
+                .input('DeletedBy', sql.Int, Number(DeletedBy))
+                .execute('sp_DeleteTask');
+
+            res.json({ success: true });
+        } catch (err) {
+            console.error('deletetask error:', err);
+            res.status(500).json({ success: false, message: err.message || 'Delete failed.' });
+        }
+    })
+    router.post('/deletetask', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+        const { TaskID, DeletedBy } = src;
         if (!TaskID || !DeletedBy) {
             return res.status(400).json({ success: false, message: 'TaskID and DeletedBy are required.' });
         }

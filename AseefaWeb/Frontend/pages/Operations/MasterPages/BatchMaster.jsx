@@ -189,9 +189,7 @@ function BatchMaster() {
       const CompanyId = sessionStorage.getItem('CompanyID');
       const DeletedBy = parseInt(sessionStorage.getItem('UserId'), 10);
 
-      const response = await api.delete('/api/deletebatch', {
-        data: { BatchId: batch.BatchId, DeletedBy }
-      });
+      const response = await api.post('/api/deletebatch', { BatchId: batch.BatchId, DeletedBy });
 
       if (response.data.success) {
         toast.success('Batch deleted successfully');

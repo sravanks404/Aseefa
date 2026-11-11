@@ -1026,6 +1026,7 @@ const getPropertySpecificationByID = async (req, res) => {
 // PropertyID + CompanyID + SpecificationID
 // ============================================================
 const deletePropertySpecification = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try {
 
         const {
@@ -1033,7 +1034,7 @@ const deletePropertySpecification = async (req, res) => {
             PropertyID,
             CompanyID,
             UserID
-        } = req.body;
+        } = src;
 
 
         if (!SpecificationID) {

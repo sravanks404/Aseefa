@@ -1861,13 +1861,11 @@ const AccountMaster = () => {
       setLoadingDelete(true);
 
       if (currentIsHead) {
-        const res = await api.delete('/api/deleteAccountHead', {
-          data: {
+        const res = await api.post('/api/deleteAccountHead', {
             HSlNo:  hSlNo,
             HName:  currentGroup.GName?.trim() || '',
             Userid: parseInt(sessionStorage.getItem('UserId'), 10) || 0
-          }
-        });
+          });
         if (res.data.success) {
           toast.success('Head deleted successfully');
           await refreshData();
@@ -1881,9 +1879,7 @@ const AccountMaster = () => {
         } else { toast.error(res.data.message || 'Delete failed'); }
 
       } else {
-        const res = await api.delete('/api/deleteitemAccount', {
-          data: { GSlNo: currentGroup.GSlNo, GName: currentGroup.GName?.trim() || '' }
-        });
+        const res = await api.post('/api/deleteitemAccount', { GSlNo: currentGroup.GSlNo, GName: currentGroup.GName?.trim() || '' });
         if (res.data.success) {
           toast.success('Deleted successfully');
           await refreshData();

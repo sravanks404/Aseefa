@@ -275,14 +275,12 @@ const PropertyOwnership = () => {
         setDeleting(true);
         setErrorMessage("");
         try {
-            const response = await api.delete("/api/deletePropertyOwnership", {
-                data: {
+            const response = await api.post("/api/deletePropertyOwnership", {
                     OwnershipID: form.id,
                     CompanyID: companyID,
                     PropertyID: selectedPropertyId,
                     UserID: userID,
-                },
-            });
+                },);
             const data = response.data;
 
             if (data?.success) {

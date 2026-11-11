@@ -329,13 +329,14 @@ const insertUpdatePropertyMaintenance = async (req, res) => {
 
 
 const deletePropertyMaintenance = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try {
         const {
             MaintenanceID,
             CompanyID,
             PropertyID,
             UserID
-        } = req.body;
+        } = src;
 
         if (!MaintenanceID || !CompanyID || !PropertyID) {
             return res.status(400).json({

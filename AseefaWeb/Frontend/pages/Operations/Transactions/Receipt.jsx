@@ -409,13 +409,11 @@ function RecieptForm() {
     ) {
       try {
 
-        const response = await api.delete("/api/deleteReciept", {
-          data: {
+        const response = await api.post("/api/deleteReciept", {
             // Prepare the data object to match the API expectation
             ReNo: parseInt(Reciept.ReNo, 10), // Ensure ReNo is an integer
             DeletedBy: Empid ? parseInt(Empid, 10) : 0, // Ensure DeletedBy is an integer
-          },
-        });
+          },);
 
 
         // Check if the response indicates success

@@ -10,7 +10,6 @@ import Occupancy from "./Occupancy";
 import Utilities from "./Utilities";
 import Maintenance from "./Maintenance";
 import Financial from "./Financial ";
-import Media from "./Media";
 import PropertyReport from "./PropertyReport";
 import PropertyMaster from "./PropertyMaster";
 
@@ -32,7 +31,6 @@ const TABS = [
   { id: "ownership", label: "Ownership", icon: "bi-person-badge", Component: Ownership },
   { id: "rental", label: "Rental", icon: "bi-cash-stack", Component: RentalInfo },
   { id: "documents", label: "Documents", icon: "bi-folder2-open", Component: Documents },
-  { id: "media", label: "Media", icon: "bi-images", Component: Media },
   { id: "utilities", label: "Expense", icon: "bi-receipt", Component: Utilities },
   { id: "occupancy", label: "Occupancy", icon: "bi-people", Component: Occupancy },
   { id: "maintenance", label: "Maintenance", icon: "bi-tools", Component: Maintenance },

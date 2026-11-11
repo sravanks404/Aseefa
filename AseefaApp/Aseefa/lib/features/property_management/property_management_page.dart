@@ -12,7 +12,7 @@ import 'utilities_screen.dart';
 import 'ownership_screen.dart';
 import 'document_screen.dart';
 import 'financial_screen.dart';
-import 'media_screen.dart';
+import 'property_report_screen.dart';
 
 class PropertyManagementPage extends StatelessWidget {
   const PropertyManagementPage({super.key});
@@ -68,7 +68,7 @@ class PropertyManagementPage extends StatelessWidget {
     ),
 
     _PropertyMenuItem('Document', 'document', Icons.folder_outlined),
-    _PropertyMenuItem('Media', 'media', Icons.perm_media_outlined),
+    _PropertyMenuItem('Report', 'report', Icons.assessment_outlined),
   ];
 
   @override
@@ -121,7 +121,6 @@ class PropertyManagementPage extends StatelessWidget {
                 'maintenance',
                 'document',
                 'financial',
-                'media',
               ],
             ),
           ],
@@ -396,10 +395,9 @@ class PropertyManagementPage extends StatelessWidget {
       case 'financial':
         screen = const FinancialScreen();
         break;
-      case 'media':
-        screen = const MediaScreen();
+      case 'report':
+        screen = const PropertyReportScreen();
         break;
-
       default:
         screen = PropertyManagementSubPage(title: title, sectionKey: key);
         break;

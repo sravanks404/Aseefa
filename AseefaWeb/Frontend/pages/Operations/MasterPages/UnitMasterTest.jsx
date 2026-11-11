@@ -204,9 +204,7 @@ const handleRowClick = (item) => {
       const DeletedBy = parseInt(sessionStorage.getItem('UserId'), 10);
 
       // axios DELETE with a body → pass under `data` key
-      const response = await api.delete('/api/deleteunittest', {
-        data: { UnitID: unit.UnitID, DeletedBy }
-      });
+      const response = await api.post('/api/deleteunittest', { UnitID: unit.UnitID, DeletedBy });
 
       if (response.data.success) {
         toast.success('Unit deleted successfully');

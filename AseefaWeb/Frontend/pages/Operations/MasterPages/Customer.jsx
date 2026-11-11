@@ -1078,9 +1078,7 @@
       try {
         setLoadingDelete(true);
         const DeletedBy = parseInt(sessionStorage.getItem("UserId"), 10);
-        const res = await api.delete("/api/deleteunit", {
-          data: { UnitID: project.UnitID, DeletedBy }
-        });
+        const res = await api.post("/api/deleteunit", { UnitID: project.UnitID, DeletedBy });
         if (res.data.success) {
           toast.success("Project deleted");
           fetchProjects();

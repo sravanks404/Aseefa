@@ -1,41 +1,47 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const sql = require("mssql");
-const dbConfig = require("../../../config/mssql");
-
-
-
-// get
-
-router.get('/getunitmastertest', async (req, res) => {
+const dbConfig = require('../../../config/mssql');
+ 
+    const src = { ...req.query, ...req.body };
   try {
-    const { CompanyId } = req.query;
 
-    if (!CompanyId) {
+    const { UnitID, DeletedBy } = src;
+
+    if (!UnitID || !DeletedBy) {
       return res.status(400).json({
         success: false,
-        message: "CompanyId is required"
+        message: "UnitID and DeletedBy are required"
       });
     }
 
     const pool = await sql.connect(dbConfig);
 
-    const result = await pool.request()
-      .input("CompanyId", sql.Int, parseInt(CompanyId))
-      .execute("WebGetUnit");
+    await pool.request()
+      .input("UnitID", sql.Int, parseInt(UnitID))
+      .input("DeletedBy", sql.Int, parseInt(DeletedBy))
+      .execute("WebDeleteUnit");
 
     res.status(200).json({
       success: true,
-      message: "Unit data fetched successfully",
-      data: result.recordset
+      message: "Unit deleted successfully"
     });
 
   } catch (error) {
 
-    console.error("Full error:", error);
+    console.error("Error deleting unit:", error);
 
     res.status(500).json({
       success: false,
+      message: "Server error",
+      error: error.message
+    });
+
+  }
+false,
       message: "Server error",
       error: error.message,
       detail: error.toString()  
@@ -86,9 +92,47 @@ router.post('/insertupdateunit', async (req, res) => {
 
 
 router.delete('/deleteunittest', async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
 
-    const { UnitID, DeletedBy } = req.body;
+    const { UnitID, DeletedBy } = src;
+
+    if (!UnitID || !DeletedBy) {
+      return res.status(400).json({
+        success: false,
+        message: "UnitID and DeletedBy are required"
+      });
+    }
+
+    const pool = await sql.connect(dbConfig);
+
+    await pool.request()
+      .input("UnitID", sql.Int, parseInt(UnitID))
+      .input("DeletedBy", sql.Int, parseInt(DeletedBy))
+      .execute("WebDeleteUnit");
+
+    res.status(200).json({
+      success: true,
+      message: "Unit deleted successfully"
+    });
+
+  } catch (error) {
+
+    console.error("Error deleting unit:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+
+  }
+})
+router.post('/deleteunittest', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+  try {
+
+    const { UnitID, DeletedBy } = src;
 
     if (!UnitID || !DeletedBy) {
       return res.status(400).json({

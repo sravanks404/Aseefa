@@ -1,41 +1,49 @@
-const express = require('express');
+
+ const express = require("express");
 const router = express.Router();
-const sql = require('mssql');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const sql = require("mssql");
 const dbConfig = require('../../../config/mssql');
-
-
-
-router.post('/insertupdateitemcategory', async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
 
-    const {
-      CategoryID,
-      CatgoryName,
-      CategoryParent,
-      CreatedBy,
-      CompanyId
-    } = req.body;
+    const { CategoryID, Group, DeletedBy, CompanyId } = src;
 
-    console.log("Request body:", req.body);
+    console.log("Request body:", src);
 
-    if (!CatgoryName || CreatedBy == null || CompanyId == null) {
+    if (!CategoryID || !DeletedBy || !CompanyId) {
       return res.status(400).json({
         success: false,
-        message: "CatgoryName, CreatedBy and CompanyId are required"
+        message: "CategoryID, DeletedBy and CompanyId are required"
       });
     }
 
-    const pool    = await sql.connect(dbConfig);
-    const request = pool.request();
+    const pool = await sql.connect(dbConfig);
 
-    // ✅ output() with 3rd arg = initial value — handles both INPUT and OUTPUT
-    request.output("CategoryID",  sql.Int,           parseInt(CategoryID || 0));
-    request.input ("CatgoryName", sql.NVarChar(200), CatgoryName.trim());
-    request.input ("ParentID",    sql.Int,           CategoryParent ? parseInt(CategoryParent) : 0);
-    request.input ("CreatedBy",   sql.Int,           parseInt(CreatedBy));
-    request.input ("CompanyID",   sql.Int,           parseInt(CompanyId));
+    await pool.request()
+      .input("CategoryID",  sql.Int,      parseInt(CategoryID))
+      .input("Group",       sql.Int,      parseInt(Group  || 0))  // ✅ 0 = cascade to children
+      .input("DeletedBy",   sql.Int,      parseInt(DeletedBy))
+      .input("DeletedDate", sql.DateTime, new Date())              // ✅ set server-side
+      .input("CompanyId",   sql.Int,      parseInt(CompanyId))
+      .execute("WebDeleteItemCategory");
 
-    const result = await request.execute("WebInsertUpdateItemCategory");
+    res.status(200).json({
+      success: true,
+      message: "Item category deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error deleting item category:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error:   error.message
+    });
+  }
+.execute("WebInsertUpdateItemCategory");
 
     res.status(200).json({
       success:    true,
@@ -87,11 +95,51 @@ router.get('/getitemcategory', async (req, res) => {
 
 
 router.delete('/deleteitemcategory', async (req, res) => {
+    const src = { ...req.query, ...req.body };
   try {
 
-    const { CategoryID, Group, DeletedBy, CompanyId } = req.body;
+    const { CategoryID, Group, DeletedBy, CompanyId } = src;
 
-    console.log("Request body:", req.body);
+    console.log("Request body:", src);
+
+    if (!CategoryID || !DeletedBy || !CompanyId) {
+      return res.status(400).json({
+        success: false,
+        message: "CategoryID, DeletedBy and CompanyId are required"
+      });
+    }
+
+    const pool = await sql.connect(dbConfig);
+
+    await pool.request()
+      .input("CategoryID",  sql.Int,      parseInt(CategoryID))
+      .input("Group",       sql.Int,      parseInt(Group  || 0))  // ✅ 0 = cascade to children
+      .input("DeletedBy",   sql.Int,      parseInt(DeletedBy))
+      .input("DeletedDate", sql.DateTime, new Date())              // ✅ set server-side
+      .input("CompanyId",   sql.Int,      parseInt(CompanyId))
+      .execute("WebDeleteItemCategory");
+
+    res.status(200).json({
+      success: true,
+      message: "Item category deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error deleting item category:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error:   error.message
+    });
+  }
+})
+router.post('/deleteitemcategory', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+  try {
+
+    const { CategoryID, Group, DeletedBy, CompanyId } = src;
+
+    console.log("Request body:", src);
 
     if (!CategoryID || !DeletedBy || !CompanyId) {
       return res.status(400).json({

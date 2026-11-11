@@ -25,6 +25,7 @@ const insertUpdatePropertyFinance = async (req, res) => {
     }
 }
 const deletePropertyFinance = async (req, res) => {
+    const src = { ...req.query, ...req.body };
     try{
 
     }catch(err){

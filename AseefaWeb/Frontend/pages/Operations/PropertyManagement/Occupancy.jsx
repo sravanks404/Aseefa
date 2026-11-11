@@ -1311,14 +1311,12 @@ const Occupancy = () => {
     setDeleting(true);
     setErrorMessage("");
     try {
-      const response = await api.delete("/api/deletePropertyOccupancy", {
-        data: {
+      const response = await api.post("/api/deletePropertyOccupancy", {
           OccupancyID: form.id,
           PropertyID: selectedProperty.id,
           CompanyID: companyID,
           ModifiedBy: userID,
-        },
-      });
+        },);
       const data = response.data;
 
       if (data?.success) {

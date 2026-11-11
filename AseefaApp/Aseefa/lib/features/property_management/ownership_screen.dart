@@ -181,7 +181,7 @@ class _PropertyOwnershipScreenState
     });
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformation').replace(
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo').replace(
         queryParameters: {'CompanyID': companyId.toString()},
       );
 
@@ -256,7 +256,7 @@ class _PropertyOwnershipScreenState
     });
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyOwnership').replace(
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyOwnership').replace(
         queryParameters: {
           'CompanyID': companyId.toString(),
           'PropertyID': propertyId.toString(),
@@ -322,7 +322,7 @@ class _PropertyOwnershipScreenState
     if (companyId == 0 || propertyId == 0 || id == 0) return;
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyOwnershipByID').replace(
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyOwnershipByID').replace(
         queryParameters: {
           'OwnershipID': id.toString(),
           'CompanyID': companyId.toString(),
@@ -574,7 +574,7 @@ class _PropertyOwnershipScreenState
         'UserID': userId,
       };
 
-      final uri = Uri.parse('${ApiConfig.baseUrl}/insertUpdatePropertyOwnership');
+      final uri = Uri.parse('${ApiConfig.webUrl}/insertUpdatePropertyOwnership');
 
       final response = await http
           .post(uri, headers: _headers, body: jsonEncode(payload))
@@ -705,7 +705,7 @@ class _PropertyOwnershipScreenState
     });
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/deletePropertyOwnership');
+      final uri = Uri.parse('${ApiConfig.webUrl}/deletePropertyOwnership');
 
       final payload = {
         'OwnershipID': ownershipId,

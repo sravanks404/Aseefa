@@ -315,14 +315,12 @@ const Amenities = () => {
                 (key) => amenityIds[key] && !enabled[key]
             );
             for (const key of toDelete) {
-                await api.delete("/api/deletePropertyAmenities", {
-                    data: {
+                await api.post("/api/deletePropertyAmenities", {
                         AmenityID: amenityIds[key],
                         PropertyID: selectedProperty.id,
                         CompanyID: companyID,
                         UserID: userID,
-                    },
-                });
+                    },);
                 delete newAmenityIds[key];
             }
 

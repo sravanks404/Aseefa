@@ -196,6 +196,220 @@ router.get('/getZone', async (req, res) => {
 //     res.status(500).json({ success: false, message: err.message });
 //   }
 // });
+// router.post('/InsertUpdateUser', async (req, res) => {
+//   const {
+//     UserId = 0, RecordID, PropertyID,
+//     Name, MName, LName, EIDNo, EIDExpiryDate, Email, Mobile, Sex, UserRoleId,
+//     BadgeNo, WorkerRate, PaymentMode, image,
+//     CompanyID, BranchID,
+//     CreatedBy, CreatedDate, ModifiedBy, ModifiedDate,
+//     RentalID = 0, LeaseStartDate, LeaseEndDate, RentalStatus = 'Occupied',
+//     RentalAmount, MonthlyRent, UserID,
+//   } = req.body;
+
+//   let assignmentTransaction;
+//   try {
+//     const pool = await sql.connect(dbConfig);
+//     const hasUnitAssignment = Boolean(PropertyID && RecordID);
+//     const actorUserID = parseInt(UserID || ModifiedBy || CreatedBy, 10);
+
+//     if (hasUnitAssignment && String(RentalStatus).trim().toLowerCase() === 'occupied' && !LeaseStartDate) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Lease start date is required when rental status is Occupied.',
+//       });
+//     }
+
+//     if (hasUnitAssignment && (!Number.isInteger(actorUserID) || actorUserID <= 0)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'UserID is required to save the lease.',
+//       });
+//     }
+
+//     // Tenant assignment and the user write share one serializable transaction so
+//     // simultaneous requests cannot both pass the unit availability check.
+//     if (hasUnitAssignment) {
+//       if (!CompanyID) {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'CompanyID is required when assigning a tenant to a unit',
+//         });
+//       }
+
+//       assignmentTransaction = new sql.Transaction(pool);
+//       await assignmentTransaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+
+//       const conflictResult = await assignmentTransaction.request()
+//         .input('CompanyID', sql.Int, parseInt(CompanyID, 10))
+//         .input('PropertyID', sql.Int, parseInt(PropertyID, 10))
+//         .input('RecordID', sql.Int, parseInt(RecordID, 10))
+//         .input('UserId', sql.Int, parseInt(UserId, 10) || 0)
+//         .input('RentalID', sql.Int, parseInt(RentalID, 10) || 0)
+//         .input('LeaseStartDate', sql.Date, LeaseStartDate || null)
+//         .input('LeaseEndDate', sql.Date, LeaseEndDate || null)
+//         .query(`
+//           DECLARE @CandidateStart DATE = COALESCE(@LeaseStartDate, CAST(GETDATE() AS DATE));
+//           DECLARE @CandidateEnd DATE = COALESCE(@LeaseEndDate, @CandidateStart);
+
+//           IF EXISTS (
+//             SELECT 1
+//             FROM dbo.PropertyRental AS pr WITH (UPDLOCK, HOLDLOCK)
+//             WHERE pr.CompanyID = @CompanyID
+//               AND pr.PropertyID = @PropertyID
+//               AND pr.RecordID = @RecordID
+//               AND pr.IsDeleted = 0
+//               AND LOWER(LTRIM(RTRIM(pr.RentalStatus))) = 'occupied'
+//               AND (@RentalID <= 0 OR pr.RentalID <> @RentalID)
+//               AND (pr.LeaseStartDate IS NULL OR pr.LeaseStartDate <= @CandidateEnd)
+//               AND (pr.LeaseEndDate IS NULL OR pr.LeaseEndDate >= @CandidateStart)
+//           )
+//             SELECT 'LEASE' AS ConflictType;
+//           ELSE IF EXISTS (
+//             SELECT 1
+//             FROM dbo.UserTable AS u WITH (UPDLOCK, HOLDLOCK)
+//             WHERE u.CompanyID = @CompanyID
+//               AND u.PropertyID = @PropertyID
+//               AND u.RecordID = @RecordID
+//               AND u.IsDeleted = 0
+//               AND u.UserId <> @UserId
+//               AND (@RentalID <= 0 OR u.RentalID IS NULL OR u.RentalID <> @RentalID)
+//           )
+//             SELECT 'TENANT' AS ConflictType;
+//         `);
+
+//       const conflictType = conflictResult.recordset?.[0]?.ConflictType;
+//       if (conflictType) {
+//         await assignmentTransaction.rollback();
+//         assignmentTransaction = null;
+//         return res.status(409).json({
+//           success: false,
+//           message: conflictType === 'LEASE'
+//             ? 'An active lease already exists for this unit during the selected dates.'
+//             : 'Another non-deleted tenant is already assigned to this unit.',
+//         });
+//       }
+//     }
+
+//     const request = assignmentTransaction
+//       ? assignmentTransaction.request()
+//       : pool.request();
+
+//     let imageBuffer = null;
+//     if (typeof image === 'string' && image.includes('base64,')) {
+//       imageBuffer = Buffer.from(image.split('base64,')[1], 'base64');
+//     }
+
+//     request.output('UserId', sql.Int, UserId ? parseInt(UserId) : 0);
+//     request.input('RecordID', sql.Int, RecordID ? parseInt(RecordID) : null);
+//     request.input('PropertyID', sql.Int, PropertyID ? parseInt(PropertyID) : null);
+
+//     request.input('Name', sql.VarChar(50), Name);
+//     request.input('MName', sql.VarChar(50), MName || null);
+//     request.input('LName', sql.VarChar(50), LName || null);
+//     request.input('EIDNo', sql.VarChar(50), EIDNo || null);
+//     request.input('EIDExpiryDate', sql.Date, EIDExpiryDate ? new Date(EIDExpiryDate) : null);
+//     request.input('Email', sql.VarChar(50), Email || null);
+//     request.input('Mobile', sql.VarChar(50), Mobile);
+//     request.input('Sex', sql.Int, Sex !== undefined && Sex !== '' ? parseInt(Sex) : null);
+//     request.input('UserRoleId', sql.Int, UserRoleId ? parseInt(UserRoleId) : null);
+//     request.input('BadgeNo', sql.VarChar(50), BadgeNo || null);
+//     request.input('WorkerRate', sql.Decimal(10, 2),
+//       WorkerRate !== undefined && WorkerRate !== null && WorkerRate !== '' ? parseFloat(WorkerRate) : null);
+//     request.input('PaymentMode', sql.VarChar(100),
+//       typeof PaymentMode === 'string' && PaymentMode.trim() ? PaymentMode.trim() : null);
+//     request.input('image', sql.VarBinary(sql.MAX), imageBuffer || null);
+
+//     request.input('CompanyID', sql.Int, CompanyID ? parseInt(CompanyID) : 0);
+//     request.input('BranchId', sql.Int, BranchID ? parseInt(BranchID) : null);
+//     request.input('CreatedBy', sql.Int, CreatedBy ? parseInt(CreatedBy) : null);
+//     request.input('CreatedDate', sql.DateTime, CreatedDate ? new Date(CreatedDate) : new Date());
+//     request.input('ModifiedBy', sql.Int, ModifiedBy ? parseInt(ModifiedBy) : null);
+//     request.input('ModifiedDate', sql.DateTime, ModifiedDate ? new Date(ModifiedDate) : new Date());
+
+//     const result = await request.execute('WebInsertUpdateUser');
+//     const savedUserID = Number(result.output?.UserId) || Number(UserId) || 0;
+
+//     if (assignmentTransaction) {
+//       if (!Number.isInteger(savedUserID) || savedUserID <= 0) {
+//         await assignmentTransaction.rollback();
+//         assignmentTransaction = null;
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Tenant save did not return a valid UserId; lease was not saved.',
+//         });
+//       }
+
+//       const monthlyRentValue = MonthlyRent !== undefined ? MonthlyRent : RentalAmount;
+//       const monthlyRentAmount = monthlyRentValue === '' || monthlyRentValue == null
+//         ? null
+//         : Number(monthlyRentValue);
+//       const tenantName = [Name, MName, LName].filter((part) => String(part || '').trim()).join(' ').trim();
+
+//       const leaseResult = await assignmentTransaction.request()
+//         .input('RentalID', sql.Int, Number(RentalID) || 0)
+//         .input('RecordID', sql.Int, parseInt(RecordID, 10))
+//         .input('CompanyID', sql.Int, parseInt(CompanyID, 10))
+//         .input('PropertyID', sql.Int, parseInt(PropertyID, 10))
+//         .input('TenantName', sql.NVarChar(200), tenantName || null)
+//         .input('RentalStatus', sql.NVarChar(50), RentalStatus || 'Occupied')
+//         .input('MonthlyRent', sql.Decimal(18, 2), monthlyRentAmount)
+//         .input('AnnualRent', sql.Decimal(18, 2), monthlyRentAmount == null ? null : monthlyRentAmount * 12)
+//         .input('SecurityDeposit', sql.Decimal(18, 2), null)
+//         .input('NumberOfCheques', sql.Int, null)
+//         .input('PaymentFrequency', sql.NVarChar(50), null)
+//         .input('RentIncreasePercentage', sql.Decimal(5, 2), null)
+//         .input('LeaseStartDate', sql.Date, LeaseStartDate || null)
+//         .input('LeaseEndDate', sql.Date, LeaseEndDate || null)
+//         .input('RenewalOption', sql.NVarChar(100), null)
+//         .input('GracePeriod', sql.Int, null)
+//         .input('LateFeeRules', sql.NVarChar(sql.MAX), null)
+//         .input('TenantUserID', sql.Int, savedUserID)
+//         .input('UserID', sql.Int, actorUserID)
+//         .execute('WebInsertUpdatePropertyRental');
+
+//       const leaseData = leaseResult.recordset?.[0];
+//       const savedRentalID = Number(leaseData?.RentalID) || 0;
+//       if (leaseData?.Success !== 1 || savedRentalID <= 0) {
+//         const message = leaseData?.Message || 'Lease could not be saved.';
+//         const isConflict = /occupied|overlap|already exists|another tenant/i.test(message);
+//         try {
+//           // The lease procedure rolls back its full transaction on some
+//           // validation failures; rollback may therefore report no active tx.
+//           await assignmentTransaction.rollback();
+//         } catch (rollbackError) {
+//           console.error('InsertUpdateUser lease rollback note:', rollbackError.message);
+//         }
+//         assignmentTransaction = null;
+//         return res.status(isConflict ? 409 : 400).json({
+//           success: false,
+//           message,
+//         });
+//       }
+
+//       await assignmentTransaction.commit();
+//       assignmentTransaction = null;
+//       return res.status(200).json({
+//         success: true,
+//         UserId: savedUserID,
+//         RentalID: savedRentalID,
+//       });
+//     }
+
+//     res.status(200).json({ success: true, UserId: savedUserID });
+//   } catch (err) {
+//     if (assignmentTransaction) {
+//       try {
+//         await assignmentTransaction.rollback();
+//       } catch (rollbackError) {
+//         console.error('InsertUpdateUser transaction rollback error:', rollbackError);
+//       }
+//     }
+//     console.error('InsertUpdateUser SQL error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// });
+
 router.post('/InsertUpdateUser', async (req, res) => {
   const {
     UserId = 0, RecordID, PropertyID,
@@ -203,49 +417,184 @@ router.post('/InsertUpdateUser', async (req, res) => {
     BadgeNo, WorkerRate, PaymentMode, image,
     CompanyID, BranchID,
     CreatedBy, CreatedDate, ModifiedBy, ModifiedDate,
+    RentalStatus, MonthlyRent, RentalAmount, LeaseStartDate, LeaseEndDate,
   } = req.body;
+  let RentalID = parseInt(req.body.RentalID, 10) || 0;
+
+  const toInt = (v) => parseInt(v, 10) || 0;
+  const toDate = (v) => (v ? new Date(v) : null);
+  const firstAmount = (...values) =>
+    values.find((value) => value !== undefined && value !== null && value !== '');
+  const parseAmount = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    const amount = Number(value);
+    return Number.isFinite(amount) ? amount : NaN;
+  };
+  const userRate = parseAmount(firstAmount(RentalAmount, WorkerRate, MonthlyRent));
+  const rentAmount = parseAmount(firstAmount(MonthlyRent, RentalAmount, WorkerRate));
+  const hasUnit = !!(PropertyID && RecordID);
+  const status = String(RentalStatus || 'Occupied').trim();
+  const isOccupied = status.toLowerCase() === 'occupied';
+
+  let tx;
+  const fail = async (code, message) => {
+    if (tx) { try { await tx.rollback(); } catch (_) {} tx = null; }
+    return res.status(code).json({ success: false, message });
+  };
 
   try {
-    const pool = await sql.connect(dbConfig);
-    const request = pool.request();
+    if (Number.isNaN(userRate) || Number.isNaN(rentAmount)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rental amount must be a valid number',
+      });
+    }
 
+    const pool = await sql.connect(dbConfig);
+
+    if (hasUnit && !CompanyID) {
+      return res.status(400).json({ success: false, message: 'CompanyID is required when assigning a tenant to a unit' });
+    }
+    if (hasUnit && isOccupied && !LeaseStartDate) {
+      return res.status(400).json({ success: false, message: 'Lease start date is required for an occupied rental' });
+    }
+
+    tx = new sql.Transaction(pool);
+    await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+
+    if (hasUnit) {
+      // 1) Find this tenant's own lease on the server (do not trust the browser)
+      if (toInt(UserId) > 0 && !RentalID) {
+        const own = await tx.request()
+          .input('UserId', sql.Int, toInt(UserId))
+          .query(`
+            SELECT TOP 1 pr.RentalID
+            FROM dbo.PropertyRental pr
+            WHERE pr.IsDeleted = 0
+              AND pr.RentalID = (SELECT RentalID FROM dbo.UserTable WHERE UserId = @UserId)
+          `);
+        RentalID = own.recordset[0]?.RentalID || 0;
+      }
+
+      // 2) Conflict checks (only when taking the unit)
+      if (isOccupied) {
+        const start = toDate(LeaseStartDate);
+        const conflict = await tx.request()
+          .input('CompanyID', sql.Int, toInt(CompanyID))
+          .input('PropertyID', sql.Int, toInt(PropertyID))
+          .input('RecordID', sql.Int, toInt(RecordID))
+          .input('UserId', sql.Int, toInt(UserId))
+          .input('RentalID', sql.Int, RentalID)
+          .input('LeaseStartDate', sql.Date, start)
+          .input('LeaseEndDate', sql.Date, toDate(LeaseEndDate))
+          .query(`
+            DECLARE @S DATE = COALESCE(@LeaseStartDate, CAST(GETDATE() AS DATE));
+            DECLARE @E DATE = @LeaseEndDate;
+
+            IF EXISTS (
+              SELECT 1 FROM dbo.PropertyRental pr WITH (UPDLOCK, HOLDLOCK)
+              WHERE pr.CompanyID = @CompanyID AND pr.PropertyID = @PropertyID
+                AND pr.RecordID = @RecordID AND pr.IsDeleted = 0
+                AND LOWER(LTRIM(RTRIM(pr.RentalStatus))) = 'occupied'
+                AND pr.RentalID <> @RentalID
+                AND pr.RentalID <> ISNULL((SELECT RentalID FROM dbo.UserTable WHERE UserId = @UserId), 0)
+                AND (pr.LeaseEndDate IS NULL OR pr.LeaseEndDate >= @S)
+                AND (@E IS NULL OR pr.LeaseStartDate IS NULL OR pr.LeaseStartDate <= @E)
+            )
+              SELECT 'LEASE' AS ConflictType;
+            ELSE IF EXISTS (
+              SELECT 1 FROM dbo.UserTable u WITH (UPDLOCK, HOLDLOCK)
+              WHERE u.CompanyID = @CompanyID AND u.PropertyID = @PropertyID
+                AND u.RecordID = @RecordID AND u.IsDeleted = 0
+                AND u.UserId <> @UserId
+            )
+              SELECT 'TENANT' AS ConflictType;
+          `);
+
+        const type = conflict.recordset?.[0]?.ConflictType;
+        if (type) {
+          return fail(409, type === 'LEASE'
+            ? 'An active lease already exists for this unit during the selected dates.'
+            : 'Another tenant is already assigned to this unit.');
+        }
+      }
+    }
+
+    // 3) Save the tenant
     let imageBuffer = null;
     if (typeof image === 'string' && image.includes('base64,')) {
       imageBuffer = Buffer.from(image.split('base64,')[1], 'base64');
     }
 
-    request.output('UserId', sql.Int, UserId ? parseInt(UserId) : 0);
-    request.input('RecordID', sql.Int, RecordID ? parseInt(RecordID) : null);
-    request.input('PropertyID', sql.Int, PropertyID ? parseInt(PropertyID) : null);
-
-    request.input('Name', sql.VarChar(50), Name);
-    request.input('MName', sql.VarChar(50), MName || null);
-    request.input('LName', sql.VarChar(50), LName || null);
-    request.input('EIDNo', sql.VarChar(50), EIDNo || null);
-    request.input('EIDExpiryDate', sql.Date, EIDExpiryDate ? new Date(EIDExpiryDate) : null);
-    request.input('Email', sql.VarChar(50), Email || null);
-    request.input('Mobile', sql.VarChar(50), Mobile);
-    request.input('Sex', sql.Int, Sex !== undefined && Sex !== '' ? parseInt(Sex) : null);
-    request.input('UserRoleId', sql.Int, UserRoleId ? parseInt(UserRoleId) : null);
-    request.input('BadgeNo', sql.VarChar(50), BadgeNo || null);
-    request.input('WorkerRate', sql.Decimal(10, 2),
-      WorkerRate !== undefined && WorkerRate !== null && WorkerRate !== '' ? parseFloat(WorkerRate) : null);
-    request.input('PaymentMode', sql.VarChar(100),
+    const userReq = tx.request();
+    userReq.output('UserId', sql.Int, toInt(UserId));
+    userReq.input('RecordID', sql.Int, RecordID ? toInt(RecordID) : null);
+    userReq.input('PropertyID', sql.Int, PropertyID ? toInt(PropertyID) : null);
+    userReq.input('Name', sql.VarChar(50), Name);
+    userReq.input('MName', sql.VarChar(50), MName || null);
+    userReq.input('LName', sql.VarChar(50), LName || null);
+    userReq.input('EIDNo', sql.VarChar(50), EIDNo || null);
+    userReq.input('EIDExpiryDate', sql.Date, toDate(EIDExpiryDate));
+    userReq.input('Email', sql.VarChar(50), Email || null);
+    userReq.input('Mobile', sql.VarChar(50), Mobile);
+    userReq.input('Sex', sql.Int, Sex !== undefined && Sex !== '' ? parseInt(Sex, 10) : null);
+    userReq.input('UserRoleId', sql.Int, UserRoleId ? toInt(UserRoleId) : null);
+    userReq.input('BadgeNo', sql.VarChar(50), BadgeNo || null);
+    userReq.input('WorkerRate', sql.Decimal(10, 2), userRate);
+    userReq.input('PaymentMode', sql.VarChar(100),
       typeof PaymentMode === 'string' && PaymentMode.trim() ? PaymentMode.trim() : null);
-    request.input('image', sql.VarBinary(sql.MAX), imageBuffer || null);
+    userReq.input('image', sql.VarBinary(sql.MAX), imageBuffer);
+    userReq.input('CompanyID', sql.Int, CompanyID ? toInt(CompanyID) : 0);
+    userReq.input('BranchId', sql.Int, BranchID ? toInt(BranchID) : null);
+    userReq.input('CreatedBy', sql.Int, CreatedBy ? toInt(CreatedBy) : null);
+    userReq.input('CreatedDate', sql.DateTime, CreatedDate ? new Date(CreatedDate) : new Date());
+    userReq.input('ModifiedBy', sql.Int, ModifiedBy ? toInt(ModifiedBy) : null);
+    userReq.input('ModifiedDate', sql.DateTime, ModifiedDate ? new Date(ModifiedDate) : new Date());
 
-    request.input('CompanyID', sql.Int, CompanyID ? parseInt(CompanyID) : 0);
-    request.input('BranchId', sql.Int, BranchID ? parseInt(BranchID) : null);
-    request.input('CreatedBy', sql.Int, CreatedBy ? parseInt(CreatedBy) : null);
-    request.input('CreatedDate', sql.DateTime, CreatedDate ? new Date(CreatedDate) : new Date());
-    request.input('ModifiedBy', sql.Int, ModifiedBy ? parseInt(ModifiedBy) : null);
-    request.input('ModifiedDate', sql.DateTime, ModifiedDate ? new Date(ModifiedDate) : new Date());
+    const userResult = await userReq.execute('WebInsertUpdateUser');
+    const savedUserId = userResult.output.UserId;
 
-    const result = await request.execute('WebInsertUpdateUser');
-    res.status(200).json({ success: true, UserId: result.output.UserId });
+    // 4) Create or update the lease in the same transaction
+    let savedRentalID = RentalID;
+    if (hasUnit) {
+      const actor = toInt(ModifiedBy) || toInt(CreatedBy) || toInt(savedUserId);
+      const tenantName = [Name, MName, LName].filter(Boolean).join(' ').trim();
+
+      const leaseReq = tx.request();
+      leaseReq.input('RentalID', sql.Int, RentalID);
+      leaseReq.input('CompanyID', sql.Int, toInt(CompanyID));
+      leaseReq.input('PropertyID', sql.Int, toInt(PropertyID));
+      leaseReq.input('RecordID', sql.Int, toInt(RecordID));
+      leaseReq.input('TenantName', sql.NVarChar(200), tenantName || null);
+      leaseReq.input('RentalStatus', sql.NVarChar(50), status);
+      leaseReq.input('MonthlyRent', sql.Decimal(18, 2), rentAmount);
+      leaseReq.input(
+        'AnnualRent',
+        sql.Decimal(18, 2),
+        rentAmount !== null ? rentAmount * 12 : null,
+      );
+      leaseReq.input('LeaseStartDate', sql.Date, toDate(LeaseStartDate));
+      leaseReq.input('LeaseEndDate', sql.Date, toDate(LeaseEndDate));
+      leaseReq.input('TenantUserID', sql.Int, toInt(savedUserId) || null);
+      leaseReq.input('UserID', sql.Int, actor);
+
+      const leaseResult = await leaseReq.execute('WebInsertUpdatePropertyRental');
+      const row = leaseResult.recordset?.[0];
+      if (!row || row.Success !== 1) {
+        return fail(409, row?.Message || 'Lease could not be saved');
+      }
+      savedRentalID = row.RentalID;
+    }
+
+    await tx.commit();
+    tx = null;
+    res.status(200).json({ success: true, UserId: savedUserId, RentalID: savedRentalID });
   } catch (err) {
-    console.error('InsertUpdateUser SQL error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    if (tx) { try { await tx.rollback(); } catch (_) {} }
+    console.error('InsertUpdateUser error:', err);
+    res.status(500).json({ success: false, message: err.number === 266
+      ? 'Rental could not be saved. Please check the unit and dates.'
+      : 'Server error while saving the tenant.' });
   }
 });
 

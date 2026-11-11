@@ -169,7 +169,7 @@ function AttendanceDocuments({
     const handleDelete = async (doc) => {
         if (!window.confirm(`Delete "${doc.FileName}"? This cannot be undone.`)) return;
         try {
-            await api.delete(`/api/DeleteAttendanceDocument/${doc.DocumentId}`);
+            await api.post(`/api/DeleteAttendanceDocument/${doc.DocumentId}`, { documentId: doc.DocumentId });
             setDocuments(prev => prev.filter(d => d.DocumentId !== doc.DocumentId));
             if (previewDoc?.DocumentId === doc.DocumentId) setPreviewDoc(null);
             toast.success('Document deleted.');

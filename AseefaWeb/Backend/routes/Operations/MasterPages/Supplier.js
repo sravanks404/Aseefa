@@ -1,71 +1,10 @@
-const express = require('express');
-const sql = require('mssql');
+const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const sql = require("mssql");
 const dbConfig = require('../../../config/mssql');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs'); 
-
-// ── Multer storage ─────────────────────────────────────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../../uploads/suppliers');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const cleanName = file.originalname
-      .replace(/__SPONSOR_\d+__IDX__\d+$/, '')
-      .replace(/__SUBSPONSOR_\d+__IDX__\d+$/, '')
-      .replace(/__IDX__\d+$/, '');
-    cb(null, `${unique}-${cleanName}`);
-  }
-});
-const upload = multer({ storage });
-
-// multer field config — three separate file inputs from the front end
-const uploadFields = upload.fields([
-  { name: 'attachments' },        // supplier-level (Other + LPO, isLPO flag in meta)
-  { name: 'sponsorAttachments' }, // sponsor documents
-  { name: 'subSponsorAttachments' } // sub-sponsor documents
-]);
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-const toDate = (val) => (!val || val === '') ? null : new Date(val);
-const toInt  = (val) => (val == null || val === '') ? null : parseInt(val);
-const toStr  = (val) => (val == null) ? '' : String(val);
-const safeJsonParse = (val, fallback) => {
-  try {
-    const parsed = JSON.parse(val ?? JSON.stringify(fallback));
-    return Array.isArray(parsed) || typeof parsed === 'object' ? parsed : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-// Inserts one row into SupplierAttachments for a given owner scope.
-async function insertAttachment(pool, { supplierID, file, docName, isLPO, ownerType, ownerKey, uploadedBy }) {
-  const storagePath = `/uploads/suppliers/${file.filename}`;
-  const ar = pool.request();
-  ar.input('SupplierID',  sql.Int,            supplierID);
-  ar.input('FileName',    sql.NVarChar(255),  file.originalname.split('__IDX__')[0].split('__SPONSOR_')[0].split('__SUBSPONSOR_')[0]);
-  ar.input('StoragePath', sql.NVarChar(500),  storagePath);
-  ar.input('FileType',    sql.NVarChar(100),  file.mimetype);
-  ar.input('FileSizeKB',  sql.Int,            Math.round(file.size / 1024));
-  ar.input('DocName',     sql.NVarChar(255),  toStr(docName));
-  ar.input('IsLPO',       sql.Bit,            !!isLPO);
-  ar.input('OwnerType',   sql.VarChar(20),    ownerType);
-  ar.input('OwnerKey',    sql.NVarChar(100),  toStr(ownerKey));
-  ar.input('UploadedBy',  sql.Int,            uploadedBy);
-  await ar.query(`
-    INSERT INTO SupplierAttachments
-      (SupplierID, FileName, StoragePath, FileType, FileSizeKB, DocName, IsLPO, OwnerType, OwnerKey, UploadedBy, UploadedAt, IsDeleted)
-    VALUES
-      (@SupplierID, @FileName, @StoragePath, @FileType, @FileSizeKB, @DocName, @IsLPO, @OwnerType, @OwnerKey, @UploadedBy, GETDATE(), 0)
-  `);
-}
-
 // ══════════════════════════════════════════════════════════════════════════
 // GET /GetSuppliers/:Companyid
 // ══════════════════════════════════════════════════════════════════════════
@@ -310,9 +249,35 @@ router.get('/GetSupplierAttachments/:supplierID', async (req, res) => {
 // DELETE /DeleteSupplierAttachment/:attachmentID
 // ══════════════════════════════════════════════════════════════════════════
 router.delete('/DeleteSupplierAttachment/:attachmentID', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+    src.attachmentID ??= req.params.attachmentID;
   try {
     const attachmentID = parseInt(req.params.attachmentID);
-    const { deletedBy } = req.body;
+    const { deletedBy } = src;
+
+    if (!attachmentID) return res.status(400).json({ success: false, message: 'attachmentID is required' });
+
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request()
+      .input('AttachmentID', sql.Int, attachmentID)
+      .input('DeletedBy',    sql.Int, toInt(deletedBy))
+      .execute('sp_DeleteSupplierAttachment');
+
+    const affected = result.recordset?.[0]?.AffectedRows ?? 0;
+    if (affected === 0) return res.status(404).json({ success: false, message: 'Attachment not found or already deleted' });
+
+    res.json({ success: true, message: 'Attachment deleted' });
+  } catch (err) {
+    console.error('DeleteSupplierAttachment error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+})
+router.post('/DeleteSupplierAttachment/:attachmentID', async (req, res) => {
+    const src = { ...req.query, ...req.body };
+    src.attachmentID ??= req.params.attachmentID;
+  try {
+    const attachmentID = parseInt(req.params.attachmentID);
+    const { deletedBy } = src;
 
     if (!attachmentID) return res.status(400).json({ success: false, message: 'attachmentID is required' });
 

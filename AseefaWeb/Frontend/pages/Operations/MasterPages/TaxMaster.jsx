@@ -1008,9 +1008,7 @@ function TaxMaster() {
       const Companyid = sessionStorage.getItem('CompanyID');
       const DeletedBy = parseInt(sessionStorage.getItem('UserId'), 10);
 
-      const res = await api.delete('/api/deletetax', {
-        data: { TaxID: tax.TaxID, DeletedBy }
-      });
+      const res = await api.post('/api/deletetax', { TaxID: tax.TaxID, DeletedBy });
 
       if (res.data.success) {
         toast.success('Tax deleted successfully');

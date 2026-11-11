@@ -1356,7 +1356,8 @@ class _RentalInformationBodyState extends State<RentalInformationBody> {
   }
 
   String? _validate() {
-    if (form.tenantUserId == null || form.tenantUserId! <= 0) {
+    if (form.rentalStatus.trim().toLowerCase() == 'occupied' &&
+        (form.tenantUserId == null || form.tenantUserId! <= 0)) {
       return 'Select or create a tenant before saving this rental.';
     }
 

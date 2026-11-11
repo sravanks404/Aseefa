@@ -403,14 +403,12 @@ function CategoryMaster() {
     if (!confirmed) return;
     try {
       setLoadingDelete(true);
-      const res = await api.delete('/api/deleteitemcategory', {
-        data: {
+      const res = await api.post('/api/deleteitemcategory', {
           CategoryID: category.CategoryID,
           Group:      0,
           DeletedBy:  parseInt(sessionStorage.getItem('UserId'), 10),
           CompanyId:  sessionStorage.getItem('CompanyID')
-        }
-      });
+        });
       if (res.data.success) {
         toast.success('Category deleted successfully');
         fetchData(); resetForm(); setShowForm(false);

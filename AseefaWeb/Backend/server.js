@@ -16,8 +16,8 @@ const Graph = require('./routes/Login/DashBoard/Graph');
 const LastDaysDash = require('./routes/Login/DashBoard/LastDaysDash');
 const Location = require('./routes/Login/DashBoard/Location');
 const OneDayDash = require('./routes/Login/DashBoard/OneDayDash');
-const TaskManager = require('./routes/Login/DashOut/TaskManager');
-const webEmpMessage = require('./routes/Login/DashOut/webEmpMessage');
+// const TaskManager = require('./routes/Login/DashOut/TaskManager');
+// const webEmpMessage = require('./routes/Login/DashOut/webEmpMessage');
 
 
 //Operations
@@ -38,16 +38,16 @@ const SeriesAllocation = require('./routes/Operations/MasterPages/SeriesAllocati
 const propertyManagement  = require('./routes/Operations/PropertyManagement/propertyInformation')
 
 const JobCard = require('./routes/Operations/MasterPages/JobCard');
-const Receipt = require('./routes/Operations/Transacations/Receipt');
+// const Receipt = require('./routes/Operations/Transacations/Receipt');
 const Enquiry = require('./routes/Operations/MasterPages/Enquiry');    
 const UnitMaster=require('./routes/Operations/MasterPages/UnitMaster');
-const UnitMasterTest=require('./routes/Operations/MasterPages/UnitMasterTest');
-const TaxMaster=require('./routes/Operations/MasterPages/TaxMaster');
-const BatchMaster=require('./routes/Operations/MasterPages/BatchMaster');
-const CategoryMaster=require('./routes/Operations/MasterPages/CategoryMaster');
+// const UnitMasterTest=require('./routes/Operations/MasterPages/UnitMasterTest');
+// const TaxMaster=require('./routes/Operations/MasterPages/TaxMaster');
+// const BatchMaster=require('./routes/Operations/MasterPages/BatchMaster');
+// const CategoryMaster=require('./routes/Operations/MasterPages/CategoryMaster');
 // accountmaster
-const AccountMasterTest = require('./routes/Operations/MasterPages/accountMasterTest')
- const InvoiceMaster=require('./routes/Operations/MasterPages/InvoiceMaster');
+// const AccountMasterTest = require('./routes/Operations/MasterPages/accountMasterTest')
+//  const InvoiceMaster=require('./routes/Operations/MasterPages/InvoiceMaster');
 
 const employeeallocation=require('./routes/Operations/MasterPages/employeeallocation');
 const Production = require('./routes/Operations/Inventory/Production');
@@ -55,8 +55,8 @@ const Dispatch = require('./routes/Operations/Inventory/Dispatch');
 const vehicleMasterpage = require('./routes/Operations/MasterPages/vehicleMaster'); 
 const RootMasterpage = require('./routes/Operations/MasterPages/RootMaster');
 const BeatAllocatepage = require('./routes/Operations/MasterPages/BeatAllocate');
-const Supplierpage = require('./routes/Operations/MasterPages/Supplier');
-const AttendanceDashboardpage = require('./routes/Operations/MasterPages/AttendanceDashboard');
+// const Supplierpage = require('./routes/Operations/MasterPages/Supplier');
+// const AttendanceDashboardpage = require('./routes/Operations/MasterPages/AttendanceDashboard');
 const Customerpage = require('./routes/Operations/MasterPages/Customer');    
 const Camppage = require('./routes/Operations/MasterPages/Camp');
 const ProjectCostpage = require('./routes/Operations/MasterPages/ProjectCost');
@@ -75,7 +75,7 @@ const vanload = require('./routes/Reports/Reports/vanload');
 const AccountReports = require('./routes/Reports/Reports/AccountReports');
 const SendAttendanceEmailRoute = require('./routes/Operations/MasterPages/SendAttendanceEmail');
 const SubmitProjectEstimationRoute = require('./routes/Operations/MasterPages/SubmitProjectEstimation ');
-const TaskManagement = require('./routes/Operations/MasterPages/TaskManagement');
+// const TaskManagement = require('./routes/Operations/MasterPages/TaskManagement');
 const propertyreport = require('./routes/Reports/Reports/propertyreport');
  
 
@@ -123,8 +123,8 @@ app.use('/api', Graph);
 app.use('/api', LastDaysDash);
 app.use('/api', Location);
 app.use('/api', OneDayDash);
-app.use('/api', TaskManager);
-app.use('/api', webEmpMessage);
+// app.use('/api', TaskManager);
+// app.use('/api', webEmpMessage);
 
 //Operations
 
@@ -141,28 +141,28 @@ app.use('/api', Account);
 app.use('/api', EmpRouteallocation);
 app.use('/api', InvoiceSeries)
 app.use('/api', ItemCreation);
-app.use('/api', Receipt);
+// app.use('/api', Receipt);
 app.use('/api', RouteMaster);
 app.use('/api', SeriesAllocation);
 app.use('/api', JobCard);
 app.use('/api', Enquiry);
 app.use('/api', Production);
 app.use('/api',UnitMaster);
-app.use('/api',UnitMasterTest);
-app.use('/api',TaxMaster);
-app.use('/api',BatchMaster);
-app.use('/api',CategoryMaster);
+// app.use('/api',UnitMasterTest);
+// app.use('/api',TaxMaster);
+// app.use('/api',BatchMaster);
+// app.use('/api',CategoryMaster);
 
 // account master
-app.use('/api',AccountMasterTest);
-app.use('/api',InvoiceMaster);
+// app.use('/api',AccountMasterTest);
+// app.use('/api',InvoiceMaster);
 app.use('/api',employeeallocation);
 app.use('/api', Dispatch);
 app.use('/api', vehicleMasterpage);
 app.use('/api', RootMasterpage);
 app.use('/api', BeatAllocatepage);
-app.use('/api',Supplierpage);
-app.use('/api', AttendanceDashboardpage);
+// app.use('/api',Supplierpage);
+// app.use('/api', AttendanceDashboardpage);
 app.use('/api',Customerpage);
 app.use('/api',Camppage);
 app.use('/api',ProjectCostpage);
@@ -182,7 +182,7 @@ app.use('/api', vanload);
 app.use('/api', AccountReports);
 app.use('/api', SendAttendanceEmailRoute);
 app.use('/api', SubmitProjectEstimationRoute);
-app.use('/api', TaskManagement);
+// app.use('/api', TaskManagement);
 app.use('/api',propertyreport);
 
 // Handle all other routes by serving index.html For HOST ----------------------------------------------------

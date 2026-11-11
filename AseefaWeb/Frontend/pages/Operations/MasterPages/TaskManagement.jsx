@@ -287,9 +287,7 @@ function TaskManagement() {
       const CompanyId = sessionStorage.getItem('CompanyID');
       const DeletedBy = parseInt(sessionStorage.getItem('UserId'), 10);
 
-      const response = await api.delete('/api/deletetask', {
-        data: { TaskID: task.TaskID, DeletedBy }
-      });
+      const response = await api.post('/api/deletetask', { TaskID: task.TaskID, DeletedBy });
 
       if (response.data.success) {
         toast.success('Task deleted successfully');

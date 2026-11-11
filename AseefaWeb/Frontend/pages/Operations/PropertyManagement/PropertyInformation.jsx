@@ -639,10 +639,7 @@ const PropertyInformation = () => {
 
         try {
 
-            const response = await api.delete(
-                "/api/deletePropertyInfo",
-                {
-                    data: {
+            const response = await api.post("/api/deletePropertyInfo", {
                         PropertyID: Number(form.id),
 
                   
@@ -650,9 +647,7 @@ const PropertyInformation = () => {
 
                      
                         UserID: userID,
-                    },
-                }
-            );
+                    },);
 
 
             const data = response.data;

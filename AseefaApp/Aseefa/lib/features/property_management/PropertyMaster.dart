@@ -94,7 +94,7 @@ final _money = NumberFormat.currency(symbol: '', decimalDigits: 2);
 
 
 
-/// Lightweight property summary from getPropertyInformation
+/// Lightweight property summary from getPropertyInfo
 class PropertySummary {
   final int id;
   final String propertyName;
@@ -533,7 +533,6 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
 
   // ---------------- Data Loading ----------------
 
-  // NOTE: Property picker load is UNCHANGED — still goes through ApiConfig.baseUrl.
   Future<void> _loadProperties() async {
     final companyID = await _getCompanyId();
     if (companyID == 0) {
@@ -542,7 +541,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
     }
     setState(() => _propertiesLoading = true);
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformation')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo')
           .replace(queryParameters: {'CompanyID': '$companyID'});
       final response = await http.get(uri);
       final data = _decodeJsonBody(response.body, 'load properties');
@@ -568,7 +567,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
     }
   }
 
-  // Property Master records list — now uses kAseefaWebUrl.
+  // Property Master records list.
   Future<void> _loadRecords() async {
     final property = _selectedProperty;
     if (property == null) return;
@@ -580,7 +579,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
 
     setState(() => _loadingRecords = true);
     try {
-      final uri = Uri.parse('$kAseefaWebUrl/getPropertyMaster')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyMaster')
           .replace(queryParameters: {
         'CompanyID': '$companyID',
         'PropertyID': '${property.id}',
@@ -608,7 +607,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
     }
   }
 
-  // Single record fetch (for edit) — now uses kAseefaWebUrl.
+  // Single record fetch (for edit).
   Future<void> _loadRecord(int recordId) async {
     final property = _selectedProperty;
     if (property == null) return;
@@ -620,7 +619,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
 
     setState(() => _loadingRecord = true);
     try {
-      final uri = Uri.parse('$kAseefaWebUrl/getPropertyMasterByID')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyMasterByID')
           .replace(queryParameters: {
         'RecordID': '$recordId',
         'CompanyID': '$companyID',
@@ -710,7 +709,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
 
   // ---------------- Save / Delete / Reset ----------------
 
-  // Add / Update — now uses kAseefaWebUrl.
+  // Add / Update.
   // FIX 1 (double-submit): the busy flag is set synchronously, immediately
   // after the guard check and before any `await`, so a fast double-tap on
   // Save/Update can't slip through and fire two POSTs.
@@ -756,7 +755,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
       debugPrint('Saving Property Record: $payload');
 
       final response = await http.post(
-        Uri.parse('$kAseefaWebUrl/insertUpdatePropertyMaster'),
+        Uri.parse('${ApiConfig.webUrl}/insertUpdatePropertyMaster'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -786,7 +785,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
     }
   }
 
-  // Delete — now uses kAseefaWebUrl.
+  // Delete.
   // FIX: same class of bug as save — the busy flag is now set immediately
   // after the guard check, before the (async) confirmation bottom sheet is
   // even shown. Previously a fast double-tap on the delete icon could open
@@ -822,7 +821,7 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
 
       final request = http.Request(
         'POST',
-        Uri.parse('$kAseefaWebUrl/deletePropertyMaster'),
+        Uri.parse('${ApiConfig.webUrl}/deletePropertyMaster'),
       );
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode({
@@ -834,8 +833,14 @@ class _PropertyMasterPageState extends State<PropertyMasterPage> {
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
       final data = _decodeJsonBody(response.body, 'delete record');
-      if (!_isSuccess(data['success'])) {
-        _notify(data['message']?.toString() ?? 'Record could not be deleted.',
+      final requestSucceeded =
+          response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          _isSuccess(data['success']);
+      if (!requestSucceeded) {
+        _notify(
+            data['message']?.toString() ??
+                'Record could not be deleted (HTTP ${response.statusCode}).',
             isError: true);
         return;
       }

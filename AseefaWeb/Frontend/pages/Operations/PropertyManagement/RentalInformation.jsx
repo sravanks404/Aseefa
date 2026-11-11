@@ -2029,14 +2029,12 @@ const RentalInformation = () => {
         setErrorMessage("");
 
         try {
-            const response = await api.delete("/api/deletePropertyRental", {
-                data: {
+            const response = await api.post("/api/deletePropertyRental", {
                     RentalID: form.id,
                     CompanyID: companyID,
                     PropertyID: selectedPropertyId,
                     UserID: userID,
-                },
-            });
+                },);
 
             const data = response.data;
 

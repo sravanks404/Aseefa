@@ -61,6 +61,14 @@ router.get(
 router.delete(
   "/deletePropertyInfo",
   propertyController.deletePropertyInformation,
+)
+router.post(
+  "/deletePropertyInfo",
+  propertyController.deletePropertyInformation,
+);
+router.post(
+  "/deletePropertyInfo",
+  propertyController.deletePropertyInformation,
 );
 router.get("/getPropertyReport", propertyController.getPropertyReport);
 //PROPERTY SPECIFICATION
@@ -77,6 +85,14 @@ router.get(
   propertySpecificationController.getPropertySpecificationByID,
 );
 router.delete(
+  "/deletePropertySpecification",
+  propertySpecificationController.deletePropertySpecification,
+)
+router.post(
+  "/deletePropertySpecification",
+  propertySpecificationController.deletePropertySpecification,
+);
+router.post(
   "/deletePropertySpecification",
   propertySpecificationController.deletePropertySpecification,
 );
@@ -96,6 +112,14 @@ router.get(
   propertyRentalController.getPropertyRentalByID,
 );
 router.delete(
+  "/deletePropertyRental",
+  propertyRentalController.deletePropertyRental,
+)
+router.post(
+  "/deletePropertyRental",
+  propertyRentalController.deletePropertyRental,
+);
+router.post(
   "/deletePropertyRental",
   propertyRentalController.deletePropertyRental,
 );
@@ -120,16 +144,19 @@ router.get("/getPropertyAmenities", getPropertyAmenities);
 router.get("/getPropertyAmenitiesByID", getPropertyAmenitiesByID);
 router.post("/insertUpdatePropertyAmenities", insertUpdatePropertyAmenities);
 router.delete("/deletePropertyAmenities", deletePropertyAmenities);
+router.post("/deletePropertyAmenities", deletePropertyAmenities);
 //PROPERTY UTILITIES
 router.get("/GetPropertyUtilities", getPropertyUtilities);
 router.get("/GetPropertyUtilityByID", getPropertyUtilityByID);
 router.post("/InsertUpdatePropertyUtilities", insertUpdatePropertyUtilities);
 router.delete("/DeletePropertyUtility", deletePropertyUtility);
+router.post("/DeletePropertyUtility", deletePropertyUtility);
 //PROPERTY OCCUPANCY
 router.get("/GetPropertyOccupancy", getPropertyOccupancy);
 router.get("/GetPropertyOccupancyByID", getPropertyOccupancyByID);
 router.post("/InsertUpdatePropertyOccupancy", insertUpdatePropertyOccupancy);
 router.delete("/DeletePropertyOccupancy", deletePropertyOccupancy);
+router.post("/DeletePropertyOccupancy", deletePropertyOccupancy);
 //PROPERTY FINANCE
 router.get("/GetPropertyFinance", propertyFinanceController.getPropertyFinance);
 router.get(
@@ -143,12 +170,21 @@ router.post(
 router.delete(
   "/DeletePropertyFinance",
   propertyFinanceController.deletePropertyFinance,
+)
+router.post(
+  "/DeletePropertyFinance",
+  propertyFinanceController.deletePropertyFinance,
+);
+router.post(
+  "/DeletePropertyFinance",
+  propertyFinanceController.deletePropertyFinance,
 );
 //PROPERTY MASTER
 router.get("/getPropertyMaster", getPropertyMaster);
 router.get("/getPropertyMasterByID", getPropertyMasterByID);
 router.post("/insertUpdatePropertyMaster", insertUpdatePropertyMasterData);
 router.delete("/deletePropertyMaster", deletePropertyMaster);
+router.post("/deletePropertyMaster", deletePropertyMaster);
 //PROPERTY DOCUMENTS
 router.get("/getPropertyDocs", getPropertyDocs);
 router.post("/uploadPropertyDoc", upload.single("file"), uploadPropertyDoc);
@@ -157,6 +193,7 @@ router.post("/deletePropertyDoc", deletePropertyDoc);
 router.get("/getPropertyMasterCheque", getPropertyMasterCheque);
 router.post("/insertUpdatePropertyMasterCheque", insertUpdatePropertyMasterCheque);
 router.delete("/deletePropertyMasterCheque", deletePropertyMasterCheque);
+router.post("/deletePropertyMasterCheque", deletePropertyMasterCheque);
 
 router.get(
   "/getRentalTransactions",

@@ -427,7 +427,7 @@ class _PropertyInformationBodyState extends State<PropertyInformationBody> {
     setState(() => loading = true);
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformation')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfo')
           .replace(queryParameters: {'CompanyID': '$companyID'});
 
       final response = await http.get(uri);
@@ -520,7 +520,7 @@ class _PropertyInformationBodyState extends State<PropertyInformationBody> {
     try {
       setState(() => loading = true);
 
-      final uri = Uri.parse('${ApiConfig.baseUrl}/getPropertyInformationByID')
+      final uri = Uri.parse('${ApiConfig.webUrl}/getPropertyInfoByID')
           .replace(queryParameters: {
         'PropertyID': '${property.id}',
         'CompanyID': '$companyID',
@@ -587,7 +587,7 @@ class _PropertyInformationBodyState extends State<PropertyInformationBody> {
       debugPrint('Saving Property: $payload');
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/insertUpdateProperty'),
+        Uri.parse('${ApiConfig.webUrl}/insertUpdateProperty'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -672,7 +672,7 @@ class _PropertyInformationBodyState extends State<PropertyInformationBody> {
     try {
       final request = http.Request(
         'POST',
-        Uri.parse('${ApiConfig.baseUrl}/deletePropertyInformation'),
+        Uri.parse('${ApiConfig.webUrl}/deletePropertyInfo'),
       );
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode({

@@ -2021,14 +2021,12 @@ const PropertyMaster = () => {
     setErrorMessage("");
 
     try {
-      const response = await api.delete("/api/deletePropertyMaster", {
-        data: {
+      const response = await api.post("/api/deletePropertyMaster", {
           RecordID: recordId,
           PropertyID: Number(selectedPropertyId),
           CompanyID: companyID,
           UserID: userID,
-        },
-      });
+        },);
       const data = response.data;
       if (!data?.success) {
         throw new Error(data?.message || "Failed to delete record");

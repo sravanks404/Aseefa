@@ -429,14 +429,12 @@ const Utilities = () => {
         setDeleting(true);
         setErrorMessage("");
         try {
-            const response = await api.delete("/api/deletePropertyUtility", {
-                data: {
+            const response = await api.post("/api/deletePropertyUtility", {
                     UtilityID: form.id,
                     PropertyID: selectedProperty.id,
                     CompanyID: companyID,
                     ModifiedBy: userID,
-                },
-            });
+                },);
             const data = response.data;
 
             if (data?.success) {

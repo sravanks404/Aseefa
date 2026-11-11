@@ -29,6 +29,18 @@ const parsePaymentModes = (value) => {
 const fullName = (i) =>
   [i.Name, i.MName, i.LName].filter(Boolean).join(' ').trim() || 'Unknown Tenant';
 
+const firstPositiveAmount = (...values) => {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const amount = Number(value);
+    if (Number.isFinite(amount) && amount > 0) return amount;
+  }
+  const zeroAmount = values.find(
+    (value) => value !== null && value !== undefined && value !== '' && Number(value) === 0
+  );
+  return zeroAmount ?? '';
+};
+
 const toDateInputValue = (val) => {
   if (!val) return '';
   if (typeof val === 'string') return val.substring(0, 10);
@@ -402,7 +414,16 @@ function RentalInfo() {
           PropertyName: propMap.get(propId) || u.PropertyName || u.BranchName || '',
           FlatNo: u.FlatNo || master.FlatNo || '',
           FlatType: u.FlatType || master.FlatType || '',
-          RentalAmount: u.RentalAmount ?? u.WorkerRate ?? rental.MonthlyRent ?? rental.AnnualRent ?? master.RentalAmount ?? 0,
+          // Only trust the lease link stored on this tenant. The rental found
+          // by unit could belong to a different tenant and must not be excluded.
+          RentalID: u.RentalID || 0,
+          RentalAmount: firstPositiveAmount(
+            u.RentalAmount,
+            rental.MonthlyRent,
+            master.RentalAmount,
+            u.WorkerRate,
+            rental.AnnualRent,
+          ),
           MonthlyRent: rental.MonthlyRent ?? null,
           AnnualRent: rental.AnnualRent ?? null,
           RentalStatus: rental.RentalStatus || effectiveStatus,
@@ -479,9 +500,60 @@ function RentalInfo() {
       ...p,
       FlatNo: rec.FlatNo || p.FlatNo,
       FlatType: rec.FlatType || p.FlatType,
-      RentalAmount: rec.RentalAmount ?? p.RentalAmount,
+      RentalAmount: firstPositiveAmount(
+        p.RentalAmount,
+        rec.RentalAmount,
+        p.MonthlyRent,
+        p.WorkerRate,
+      ),
     }));
   }, [user.RecordID, recordList]);
+
+  useEffect(() => {
+    if (!showForm || !user.PropertyID || !user.RecordID) return undefined;
+    let active = true;
+    const loadUnitRentalAmount = async () => {
+      try {
+        const CompanyID = isSuperAdmin
+          ? user.CompanyID
+          : sessionStorage.getItem('CompanyID');
+        if (!CompanyID) return;
+        const response = await api.get('/api/getPropertyRental', {
+          params: {
+            CompanyID,
+            PropertyID: user.PropertyID,
+            RecordID: user.RecordID,
+          },
+        });
+        if (!active) return;
+        const contracts = response.data?.data || response.data?.recordset || [];
+        const contract = contracts.find(
+          (item) => String(item.RecordID) === String(user.RecordID),
+        );
+        if (!contract) return;
+        const contractAmount = firstPositiveAmount(
+          contract.MonthlyRent,
+          contract.AnnualRent,
+        );
+        if (contractAmount === '') return;
+        setUser((current) => ({
+          ...current,
+          MonthlyRent: contract.MonthlyRent ?? '',
+          RentalAmount: firstPositiveAmount(
+            current.RentalAmount,
+            contract.MonthlyRent,
+            contract.AnnualRent,
+          ),
+        }));
+      } catch (error) {
+        console.error('Failed to load unit rental amount:', error);
+      }
+    };
+    loadUnitRentalAmount();
+    return () => {
+      active = false;
+    };
+  }, [showForm, user.PropertyID, user.RecordID, user.CompanyID, isSuperAdmin]);
 
   const handleRowClick = useCallback(async (item) => {
     if (!canView) return toast.error('No permission to view.');
@@ -504,7 +576,13 @@ function RentalInfo() {
       RecordID: item.RecordID ? String(item.RecordID) : '',
       FlatNo: item.FlatNo || '',
       FlatType: item.FlatType || '',
-      RentalAmount: item.RentalAmount ?? item.WorkerRate ?? '',
+      RentalAmount: firstPositiveAmount(
+        item.RentalAmount,
+        item.MonthlyRent,
+        item.WorkerRate,
+        item.AnnualRent,
+      ),
+      MonthlyRent: item.MonthlyRent ?? '',
       Name: item.Name || '', MName: item.MName || '', LName: item.LName || '',
       Sex: item.Sex != null ? item.Sex.toString() : '',
       Mobile: item.Mobile || '', Email: item.Email || '',
@@ -532,6 +610,9 @@ function RentalInfo() {
     if (!user.RecordID) err.RecordID = 'Flat / Record is required';
     if (!user.Name?.trim()) err.Name = 'First Name is required';
     if (!user.Mobile?.trim()) err.Mobile = 'Mobile is required';
+    if (String(user.RentalStatus || '').trim().toLowerCase() === 'occupied' && !user.LeaseStartDate) {
+      err.LeaseStartDate = 'Lease start date is required for an occupied rental';
+    }
     if (user.Email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.Email)) err.Email = 'Valid Email required';
     if (user.EIDNo?.trim() && !isValidEID(user.EIDNo)) {
       err.EIDNo = 'EID format 784-XXXX-XXXXXXX-X';
@@ -547,6 +628,7 @@ function RentalInfo() {
     return {
       ...base,
       UserId: user.UserId || 0,
+      UserID: Number(sessionStorage.getItem('UserId')) || 0,
       PropertyID: user.PropertyID ? parseInt(user.PropertyID) : null,
       RecordID: user.RecordID ? parseInt(user.RecordID) : null,
       FlatNo: user.FlatNo?.trim() || null,
@@ -568,8 +650,53 @@ function RentalInfo() {
       RentalStatus: user.RentalStatus || 'Occupied',
       LeaseStartDate: user.LeaseStartDate || null,
       LeaseEndDate: user.LeaseEndDate || null,
+      RentalID: user.RentalID || 0,
     };
   };
+
+  const requestFlatAvailability = async () => {
+    const finalCompanyID = isSuperAdmin ? user.CompanyID : sessionStorage.getItem('CompanyID');
+    if (!finalCompanyID || !user.PropertyID || !user.RecordID) {
+      throw new Error('Company, property, and unit are required to verify availability.');
+    }
+
+    const response = await api.get('/api/checkFlatAvailability', {
+      params: {
+        CompanyID: finalCompanyID,
+        PropertyID: user.PropertyID,
+        RecordID: user.RecordID,
+        RentalID: user.RentalID || undefined,
+        UserId: user.UserId || undefined,
+        LeaseStartDate: user.LeaseStartDate || undefined,
+        LeaseEndDate: user.LeaseEndDate || undefined,
+      },
+    });
+    const availability = response.data;
+    if (availability?.success !== true || typeof availability.available !== 'boolean') {
+      throw new Error(availability?.message || 'The unit availability check returned an invalid response.');
+    }
+    if (/not found/i.test(availability.message || '')) {
+      throw new Error('The selected unit could not be found. Refresh the unit list and try again.');
+    }
+    return availability;
+  };
+
+  const ensureFlatAvailable = async () => {
+    setFlatAvailability({ checking: true });
+    try {
+      const availability = await requestFlatAvailability();
+      setFlatAvailability(availability);
+      if (!availability.available || availability.isOccupied) {
+        return availability.message || 'This unit is not available for the selected dates.';
+      }
+      return '';
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || 'Availability could not be verified.';
+      setFlatAvailability({ failed: true, message });
+      return `Unable to verify unit availability. Save blocked. ${message}`;
+    }
+  };
+
     // ── Create ────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -578,11 +705,10 @@ function RentalInfo() {
     setFieldErrors(err);
     if (Object.keys(err).length) return toast.error('Please fill all mandatory fields');
 
-    if (flatAvailability && flatAvailability.isOccupied) {
-      return toast.error(" This flat is currently occupied. Please select another available flat or complete the previous rental first.");
-    }
     try {
       setLoadingSubmit(true);
+      const availabilityError = await ensureFlatAvailable();
+      if (availabilityError) return toast.error(availabilityError);
       const finalCompanyID = isSuperAdmin ? user.CompanyID : sessionStorage.getItem('CompanyID');
       if (!finalCompanyID) return toast.error('Company is required');
       const payload = buildPayload({
@@ -593,7 +719,7 @@ function RentalInfo() {
       });
       const res = await api.post('/api/InsertUpdateUser', payload);
       if (res.data?.success) {
-        toast.success('Rental created');
+        toast.success(`Tenant and lease saved${res.data.RentalID ? ` (Rental #${res.data.RentalID})` : ''}`);
         fetchRentals(finalCompanyID);
         resetForm();
         setShowForm(false);
@@ -614,6 +740,8 @@ function RentalInfo() {
     if (Object.keys(err).length) return toast.error('Please fill all mandatory fields');
     try {
       setLoadingUpdate(true);
+      const availabilityError = await ensureFlatAvailable();
+      if (availabilityError) return toast.error(availabilityError);
       const finalCompanyID = isSuperAdmin ? user.CompanyID : sessionStorage.getItem('CompanyID');
       const payload = buildPayload({
         CompanyID: parseInt(finalCompanyID),
@@ -624,7 +752,7 @@ function RentalInfo() {
       if (!payload.image || typeof payload.image !== 'string') delete payload.image;
       const res = await api.post('/api/InsertUpdateUser', payload);
       if (res.data?.success) {
-        toast.success('Rental updated');
+        toast.success(`Tenant and lease updated${res.data.RentalID ? ` (Rental #${res.data.RentalID})` : ''}`);
         fetchRentals(finalCompanyID);
         resetForm();
         setShowForm(false);
@@ -802,7 +930,10 @@ function RentalInfo() {
 
     let isMounted = true;
     const finalCompanyID = isSuperAdmin ? user.CompanyID : sessionStorage.getItem('CompanyID');
-    if (!finalCompanyID) return;
+    if (!finalCompanyID) {
+      setFlatAvailability({ failed: true, message: 'Company is required to verify unit availability.' });
+      return;
+    }
 
     const timer = setTimeout(async () => {
       try {
@@ -821,11 +952,13 @@ function RentalInfo() {
         });
         if (isMounted && res.data) {
           setFlatAvailability(res.data);
+        } else if (isMounted) {
+          setFlatAvailability({ failed: true, message: 'The unit availability check returned no result.' });
         }
       } catch (err) {
         if (isMounted) {
           console.error('Error checking flat availability:', err);
-          setFlatAvailability(null);
+          setFlatAvailability({ failed: true, message: err.response?.data?.message || err.message || 'Unable to verify unit availability.' });
         }
       }
     }, 250);
@@ -1345,7 +1478,15 @@ function RentalInfo() {
                           className={`form-select ${fieldErrors.PropertyID ? 'is-invalid' : ''}`}
                           value={user.PropertyID}
                           onChange={(e) => {
-                            setUser((p) => ({ ...p, PropertyID: e.target.value, RecordID: '', FlatNo: '', FlatType: '' }));
+                            setUser((p) => ({
+                              ...p,
+                              PropertyID: e.target.value,
+                              RecordID: '',
+                              FlatNo: '',
+                              FlatType: '',
+                              RentalAmount: '',
+                              MonthlyRent: '',
+                            }));
                           }}>
                           <option value="">Select Property</option>
                           {propertyList.map((p) => (
@@ -1363,7 +1504,19 @@ function RentalInfo() {
                         <select
                           className={`form-select ${fieldErrors.RecordID ? 'is-invalid' : ''}`}
                           value={user.RecordID}
-                          onChange={(e) => setUser((p) => ({ ...p, RecordID: e.target.value }))}
+                          onChange={(e) => {
+                            const record = recordList.find(
+                              (item) => String(item.RecordID) === e.target.value,
+                            );
+                            setUser((p) => ({
+                              ...p,
+                              RecordID: e.target.value,
+                              FlatNo: record?.FlatNo || '',
+                              FlatType: record?.FlatType || '',
+                              RentalAmount: firstPositiveAmount(record?.RentalAmount),
+                              MonthlyRent: '',
+                            }));
+                          }}
                           disabled={!user.PropertyID || loadingRecords}>
                           <option value="">
                             {!user.PropertyID
@@ -1473,11 +1626,13 @@ function RentalInfo() {
                         <label className="form-label fw-medium mb-2">Lease Start Date</label>
                         <input
                           type="date"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.LeaseStartDate ? 'is-invalid' : ''}`}
                           name="LeaseStartDate"
                           value={user.LeaseStartDate || ''}
                           onChange={handleInputChange}
+                          required={String(user.RentalStatus || '').trim().toLowerCase() === 'occupied'}
                         />
+                        {fieldErrors.LeaseStartDate && <div className="invalid-feedback">{fieldErrors.LeaseStartDate}</div>}
                       </div>
 
                       <div className="col-md-4">
